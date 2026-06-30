@@ -180,26 +180,31 @@ public partial class OverlayWindow : Window
         return grid;
     }
 
-    // Fluent "Scan Camera" (regular): corner brackets framing a small camera.
-    private const string ScanCameraGeometry =
-        "M8 4 H6 A2 2 0 0 0 4 6 V8 M16 4 H18 A2 2 0 0 1 20 6 V8 " +
-        "M20 16 V18 A2 2 0 0 1 18 20 H16 M8 20 H6 A2 2 0 0 1 4 18 V16 " +
-        "M8 16.5 V12 A1.5 1.5 0 0 1 9.5 10.5 H10.2 L11 9.3 H13 L13.8 10.5 H14.5 " +
-        "A1.5 1.5 0 0 1 16 12 V16.5 A1.5 1.5 0 0 1 14.5 18 H9.5 A1.5 1.5 0 0 1 8 16.5 Z " +
-        "M10.3 14 A1.7 1.7 0 1 0 13.7 14 A1.7 1.7 0 1 0 10.3 14 Z";
+    // "Scan" style: four corner brackets framing a solid circle. Drawn at the
+    // same 16px scale and 1.6 stroke as the Record icon so the weights match.
+    private const string ScanFrameGeometry =
+        "M6 2 H4 A2 2 0 0 0 2 4 V6 M10 2 H12 A2 2 0 0 1 14 4 V6 " +
+        "M14 10 V12 A2 2 0 0 1 12 14 H10 M6 14 H4 A2 2 0 0 1 2 12 V10";
 
     private static UIElement BuildScanCameraIcon()
     {
-        var path = new System.Windows.Shapes.Path
+        var grid = new System.Windows.Controls.Grid { Width = 16, Height = 16 };
+        grid.Children.Add(new System.Windows.Shapes.Path
         {
-            Data = Geometry.Parse(ScanCameraGeometry),
+            Data = Geometry.Parse(ScanFrameGeometry),
             Stroke = Brushes.White,
             StrokeThickness = 1.6,
             StrokeStartLineCap = PenLineCap.Round,
             StrokeEndLineCap = PenLineCap.Round,
             StrokeLineJoin = PenLineJoin.Round,
-        };
-        return new System.Windows.Controls.Viewbox { Width = 18, Height = 18, Child = path };
+        });
+        grid.Children.Add(new Ellipse
+        {
+            Width = 6, Height = 6, Fill = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        return grid;
     }
 
     private void OnToolbarMouseDown(object sender, MouseButtonEventArgs e)
