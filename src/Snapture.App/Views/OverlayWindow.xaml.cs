@@ -20,8 +20,6 @@ namespace Snapture.App.Views;
 /// </summary>
 public partial class OverlayWindow : Window
 {
-    private sealed record FormatItem(string Label, OutputFormat Format) { public override string ToString() => Label; }
-
     private const int HandleTolerancePx = 10;
 
     private readonly List<Rectangle> _handles = new();
@@ -29,9 +27,11 @@ public partial class OverlayWindow : Window
 
     private int _vx, _vy, _vw, _vh;     // virtual desktop, physical px
     private double _scale = 1.0;         // physical px per DIP
+    private CaptureRegion _homeMonitor;  // monitor under the cursor at open (chrome anchor)
     private bool _loaded;
     private bool _suppressModeEvents;
 
+    private CaptureKind _kind;
     private CaptureMode _mode;
     private bool _dragging;
     private bool _drawingNew;
@@ -80,21 +80,14 @@ public partial class OverlayWindow : Window
     private Point _toolbarDragOrigin;
     private double _toolbarStartLeft, _toolbarStartTop;
 
-    public OverlayWindow(CaptureMode mode, OutputFormat format)
+    public OverlayWindow(CaptureKind kind, CaptureMode mode)
     {
         InitializeComponent();
+        _kind = kind;
         _mode = mode;
         CreateHandles();
 
-        FormatCombo.ItemsSource = new[]
-        {
-            new FormatItem("MP4", OutputFormat.Mp4),
-            new FormatItem("WebP", OutputFormat.WebP),
-            new FormatItem("GIF", OutputFormat.Gif),
-        };
-        FormatCombo.SelectedItem = ((IEnumerable<FormatItem>)FormatCombo.ItemsSource).First(f => f.Format == format);
-
-        WireToolbar(mode);
+        WireToolbar(kind, mode);
 
         Loaded += OnLoaded;
         SizeChanged += (_, _) => { UpdateVisuals(); PositionToolbar(); UpdateDisplayMap(); };
@@ -110,28 +103,34 @@ public partial class OverlayWindow : Window
 
     public nint ToolbarHandle { get; set; }
 
+    /// <summary>Whether the user is set to take a video recording or a still snapshot.</summary>
+    public CaptureKind Kind => _kind;
+
+    /// <summary>The capture mode currently selected in the toolbar.</summary>
+    public CaptureMode Mode => _mode;
+
     public event Action<CaptureTarget?>? TargetChanged;
-    public event Action<OutputFormat>? FormatChanged;
     public event Action? Confirmed;
     public event Action? Cancelled;
 
-    private void WireToolbar(CaptureMode mode)
+    /// <summary>Raised when the user changes the capture mode mid-pick (Display/Window/Custom).</summary>
+    public event Action? CaptureModeChanged;
+
+    private void WireToolbar(CaptureKind kind, CaptureMode mode)
     {
         _suppressModeEvents = true;
+        KindSnapshot.IsChecked = kind == CaptureKind.Image;
+        KindVideo.IsChecked = kind == CaptureKind.Video;
         ModeDisplay.IsChecked = mode == CaptureMode.Display;
         ModeWindow.IsChecked = mode == CaptureMode.Window;
         ModeCustom.IsChecked = mode == CaptureMode.Custom;
         _suppressModeEvents = false;
 
+        KindSnapshot.Checked += (_, _) => OnKindPicked(CaptureKind.Image);
+        KindVideo.Checked += (_, _) => OnKindPicked(CaptureKind.Video);
         ModeDisplay.Checked += (_, _) => OnModePicked(CaptureMode.Display);
         ModeWindow.Checked += (_, _) => OnModePicked(CaptureMode.Window);
         ModeCustom.Checked += (_, _) => OnModePicked(CaptureMode.Custom);
-
-        FormatCombo.SelectionChanged += (_, _) =>
-        {
-            if (FormatCombo.SelectedItem is FormatItem f)
-                FormatChanged?.Invoke(f.Format);
-        };
 
         RecordButton.Click += (_, _) => { if (GetCurrentTarget() is not null) Confirmed?.Invoke(); };
         CancelButton.Click += (_, _) => Cancelled?.Invoke();
@@ -142,6 +141,71 @@ public partial class OverlayWindow : Window
         Toolbar.MouseLeftButtonDown += OnToolbarMouseDown;
         Toolbar.MouseMove += OnToolbarMouseMove;
         Toolbar.MouseLeftButtonUp += OnToolbarMouseUp;
+
+        UpdateActionButton();
+    }
+
+    private void OnKindPicked(CaptureKind kind)
+    {
+        if (_suppressModeEvents) return;
+        _kind = kind;            // capture mode stays sticky across a kind switch
+        UpdateActionButton();
+        RaiseTarget();
+    }
+
+    private void UpdateActionButton()
+    {
+        if (_kind == CaptureKind.Image)
+        {
+            RecordButton.Content = BuildScanCameraIcon();
+            RecordButton.ToolTip = "Take snapshot (Enter)";
+        }
+        else
+        {
+            RecordButton.Content = BuildRecordIcon();
+            RecordButton.ToolTip = "Record (Enter)";
+        }
+    }
+
+    // Fluent "Record" (regular): a ring with a filled centre dot.
+    private static UIElement BuildRecordIcon()
+    {
+        var grid = new System.Windows.Controls.Grid { Width = 16, Height = 16 };
+        grid.Children.Add(new Ellipse { Stroke = Brushes.White, StrokeThickness = 1.6 });
+        grid.Children.Add(new Ellipse
+        {
+            Width = 7, Height = 7, Fill = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        return grid;
+    }
+
+    // "Scan" style: four corner brackets framing a solid circle. Drawn at the
+    // same 16px scale and 1.6 stroke as the Record icon so the weights match.
+    private const string ScanFrameGeometry =
+        "M6 2 H4 A2 2 0 0 0 2 4 V6 M10 2 H12 A2 2 0 0 1 14 4 V6 " +
+        "M14 10 V12 A2 2 0 0 1 12 14 H10 M6 14 H4 A2 2 0 0 1 2 12 V10";
+
+    private static UIElement BuildScanCameraIcon()
+    {
+        var grid = new System.Windows.Controls.Grid { Width = 16, Height = 16 };
+        grid.Children.Add(new System.Windows.Shapes.Path
+        {
+            Data = Geometry.Parse(ScanFrameGeometry),
+            Stroke = Brushes.White,
+            StrokeThickness = 1.6,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            StrokeLineJoin = PenLineJoin.Round,
+        });
+        grid.Children.Add(new Ellipse
+        {
+            Width = 6, Height = 6, Fill = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        return grid;
     }
 
     private void OnToolbarMouseDown(object sender, MouseButtonEventArgs e)
@@ -181,6 +245,7 @@ public partial class OverlayWindow : Window
         UpdateVisuals();
         UpdateDisplayMap();
         RaiseTarget();
+        CaptureModeChanged?.Invoke(); // a mid-pick change overrides the saved default
     }
 
     public CaptureTarget? GetCurrentTarget()
@@ -230,6 +295,10 @@ public partial class OverlayWindow : Window
                 UpdateHoverTarget(_cursorPx, _cursorPy);
         }
 
+        // Anchor the toolbar/picker on the monitor the cursor is on right now.
+        // Captured once: the chrome doesn't chase the cursor across monitors.
+        _homeMonitor = ScreenInfo.MonitorAt(_cursorPx, _cursorPy).Bounds;
+
         _loaded = true;
 
         // Dim layer behind us. ShowActivated=false keeps our keyboard focus; we
@@ -256,6 +325,7 @@ public partial class OverlayWindow : Window
         UpdateVisualsCore();
         PositionToolbar();
         UpdateDisplayMap();
+        RaiseTarget(); // set the action button's initial enabled state
         _snapTimer.Start();
     }
 
@@ -280,7 +350,7 @@ public partial class OverlayWindow : Window
 
         _displayMap.Visibility = Visibility.Visible;
         _displayMap.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var (px, py, pw, ph) = PrimaryMonitorDip();
+        var (px, py, pw, ph) = ActiveMonitorDip();
         Canvas.SetLeft(_displayMap, px + (pw - _displayMap.DesiredSize.Width) / 2);
         Canvas.SetTop(_displayMap, py + (ph - _displayMap.DesiredSize.Height) / 2);
         _displayMap.UpdateMouse(_cursorPx, _cursorPy);
@@ -626,12 +696,20 @@ public partial class OverlayWindow : Window
         return (PhysXToDip(p.Bounds.X), PhysYToDip(p.Bounds.Y), p.Bounds.Width / _scale, p.Bounds.Height / _scale);
     }
 
+    /// <summary>DIP rect of the monitor the chrome is anchored to (where the cursor opened).</summary>
+    private (double X, double Y, double W, double H) ActiveMonitorDip()
+    {
+        if (_homeMonitor.IsEmpty) return PrimaryMonitorDip();
+        return (PhysXToDip(_homeMonitor.X), PhysYToDip(_homeMonitor.Y),
+                _homeMonitor.Width / _scale, _homeMonitor.Height / _scale);
+    }
+
     private void CenterHint()
     {
         if (!_loaded) return;
         HintBadge.Visibility = Visibility.Visible;
         HintBadge.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var (px, py, pw, ph) = PrimaryMonitorDip();
+        var (px, py, pw, ph) = ActiveMonitorDip();
         Canvas.SetLeft(HintBadge, px + (pw - HintBadge.DesiredSize.Width) / 2);
         Canvas.SetTop(HintBadge, py + ph * 0.45);
     }
@@ -641,7 +719,7 @@ public partial class OverlayWindow : Window
         if (!_loaded || _toolbarMoved) return;
         Toolbar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var width = Toolbar.ActualWidth > 0 ? Toolbar.ActualWidth : Toolbar.DesiredSize.Width;
-        var (px, py, pw, _) = PrimaryMonitorDip();
+        var (px, py, pw, _) = ActiveMonitorDip();
         Canvas.SetLeft(Toolbar, px + (pw - width) / 2);
         Canvas.SetTop(Toolbar, py + 14);
     }

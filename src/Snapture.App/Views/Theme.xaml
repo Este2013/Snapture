@@ -67,6 +67,39 @@
         </Setter>
     </Style>
 
+    <!-- A toggle switch built on CheckBox (WPF ships no ToggleSwitch). -->
+    <Style x:Key="ToggleSwitch" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Width="42" Height="22">
+                        <Border x:Name="track" CornerRadius="11"
+                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlStrongStrokeColorDefaultBrush}"
+                                BorderThickness="1" />
+                        <Ellipse x:Name="thumb" Width="14" Height="14"
+                                 HorizontalAlignment="Left" Margin="4,0,0,0"
+                                 Fill="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="track" Property="Background"
+                                    Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <Setter TargetName="track" Property="BorderBrush"
+                                    Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <Setter TargetName="thumb" Property="HorizontalAlignment" Value="Right" />
+                            <Setter TargetName="thumb" Property="Margin" Value="0,0,4,0" />
+                            <Setter TargetName="thumb" Property="Fill"
+                                    Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Rounded container that visually groups segment radio buttons. -->
     <Style x:Key="SegmentedContainer" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
