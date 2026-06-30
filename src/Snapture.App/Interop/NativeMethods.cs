@@ -24,10 +24,6 @@ internal static class NativeMethods
     public const int GWL_EXSTYLE = -20;
     public const int WS_EX_TOOLWINDOW = 0x00000080; // keep off alt-tab / taskbar
     public const int WS_EX_NOACTIVATE = 0x08000000;
-    public const int WS_EX_LAYERED = 0x00080000;
-    public const int WS_EX_TRANSPARENT = 0x00000020; // click-through
-
-    private const uint LWA_ALPHA = 0x2;
     private const int RGN_DIFF = 4;
     private const uint SWP_NOSIZE = 0x0001;
     private const uint SWP_NOMOVE = 0x0002;
@@ -50,9 +46,6 @@ internal static class NativeMethods
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern int SetWindowLong(nint hWnd, int nIndex, int dwNewLong);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool SetLayeredWindowAttributes(nint hwnd, uint crKey, byte bAlpha, uint dwFlags);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern int SetWindowRgn(nint hWnd, nint hRgn, bool bRedraw);
@@ -91,20 +84,6 @@ internal static class NativeMethods
         if (noActivate)
             ex |= WS_EX_NOACTIVATE;
         SetWindowLong(hwnd, GWL_EXSTYLE, ex);
-    }
-
-    /// <summary>
-    /// Turn a window into a click-through layered window with uniform opacity,
-    /// so the DWM composites its transparency on the GPU instead of WPF doing a
-    /// software per-pixel blit. Used by the dim layer behind the selection overlay.
-    /// </summary>
-    public static void MakeDimLayer(Window window, byte alpha)
-    {
-        var hwnd = new WindowInteropHelper(window).Handle;
-        var ex = GetWindowLong(hwnd, GWL_EXSTYLE);
-        ex |= WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TRANSPARENT;
-        SetWindowLong(hwnd, GWL_EXSTYLE, ex);
-        SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
     }
 
     /// <summary>

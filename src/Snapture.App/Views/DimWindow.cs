@@ -5,37 +5,40 @@ using Snapture.App.Interop;
 namespace Snapture.App.Views;
 
 /// <summary>
-/// The dimming layer that sits behind the <see cref="OverlayWindow"/>. It is a
-/// plain opaque (hardware-rendered) black window made uniformly translucent by
-/// the DWM via <see cref="NativeMethods.MakeDimLayer"/>, with the selection area
-/// punched out as a window region. This keeps the expensive part — shading the
-/// whole virtual desktop — entirely on the GPU compositor, so moving or resizing
-/// the selection only updates a region instead of re-rasterising a desktop-sized
-/// semi-transparent fill in software (the old source of the drag lag).
+/// The dimming layer that sits behind the <see cref="OverlayWindow"/>: a
+/// translucent black window spanning the virtual desktop, with the selection
+/// area punched out as a window region.
 /// </summary>
+/// <remarks>
+/// The translucency is a plain semi-transparent WPF background (an
+/// <see cref="Window.AllowsTransparency"/> window) rather than a layered-window
+/// alpha — <c>SetLayeredWindowAttributes</c> is silently ignored on a
+/// hardware-rendered WPF window and leaves it fully opaque. The performance win
+/// still holds because this window's <em>content</em> is static: WPF does its one
+/// software composite when shown, and thereafter moving/resizing the selection
+/// only updates the window region (cheap, GPU-composited) instead of
+/// re-rasterising a desktop-sized fill on every drag like the old overlay did.
+/// </remarks>
 internal sealed class DimWindow : Window
 {
     private readonly int _vx, _vy, _vw, _vh;
-    private readonly byte _alpha;
 
     public DimWindow(int vx, int vy, int vw, int vh, byte alpha)
     {
         _vx = vx; _vy = vy; _vw = vw; _vh = vh;
-        _alpha = alpha;
 
         WindowStyle = WindowStyle.None;
+        AllowsTransparency = true;
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
         ShowActivated = false;     // never steal focus from the overlay
         Topmost = true;
-        Background = Brushes.Black; // DWM applies the uniform alpha on top of this
+        Background = new SolidColorBrush(Color.FromArgb(alpha, 0, 0, 0));
 
-        // SourceInitialized fires once the HWND exists but before the first paint,
-        // so the uniform alpha is in place before the black ever hits the screen.
         SourceInitialized += (_, _) =>
         {
             NativeMethods.SetWindowBoundsPhysical(this, _vx, _vy, _vw, _vh);
-            NativeMethods.MakeDimLayer(this, _alpha);
+            NativeMethods.MarkToolWindow(this, noActivate: true);
         };
     }
 
