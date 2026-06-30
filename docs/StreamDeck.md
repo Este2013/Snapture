@@ -76,7 +76,7 @@ One response per command:
 ```json
 {"type":"response","id":"3","ok":true,"state":"idle",
  "data":{"format":"Mp4","mode":"Custom","frameRate":30,"quality":70,
-         "library":"C:\\Users\\me\\Pictures\\Snapture"}}
+         "library":"C:\\Users\\me\\Videos\\Snapture"}}
 ```
 
 ## Events (server → client, unsolicited)
@@ -85,7 +85,7 @@ One response per command:
 {"type":"event","event":"hello","state":"idle"}
 {"type":"event","event":"stateChanged","state":"recording"}
 {"type":"event","event":"recordingCompleted","state":"idle",
- "data":{"ok":true,"path":"C:\\Users\\me\\Pictures\\Snapture\\Snapture_2026-06-30_15-22-01.mp4","error":null}}
+ "data":{"ok":true,"path":"C:\\Users\\me\\Videos\\Snapture\\Snapture_2026-06-30_15-22-01.mp4","error":null}}
 ```
 
 ### States

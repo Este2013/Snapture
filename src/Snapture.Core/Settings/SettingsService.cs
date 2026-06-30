@@ -40,8 +40,8 @@ public sealed class SettingsService
         var folder = Current.LibraryFolder;
         if (string.IsNullOrWhiteSpace(folder))
         {
-            var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-            folder = Path.Combine(pictures, AppFolderName);
+            var videos = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
+            folder = Path.Combine(videos, AppFolderName);
         }
 
         try { Directory.CreateDirectory(folder); }

@@ -17,7 +17,7 @@ public sealed class AppSettings
 
     /// <summary>
     /// Where finished recordings are written. Empty means "use the default
-    /// library folder" (Pictures\Snapture), resolved at runtime.
+    /// library folder" (Videos\Snapture), resolved at runtime.
     /// </summary>
     public string LibraryFolder { get; set; } = string.Empty;
 
