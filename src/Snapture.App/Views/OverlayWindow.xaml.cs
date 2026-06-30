@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using Snapture.App.Interop;
 using Snapture.Core.Models;
 using CaptureMode = Snapture.Core.Models.CaptureMode; // disambiguate from System.Windows.Input.CaptureMode
@@ -50,6 +51,23 @@ public partial class OverlayWindow : Window
     // Display-mode picker: a Windows-Settings-style map of all monitors.
     private DisplayMapControl? _displayMap;
 
+    // Logical-area snap (Custom mode, before a real selection exists): hovering
+    // previews the tightest UI element under the cursor; the wheel walks up to its
+    // parent; a plain click commits it; a drag falls back to a manual rectangle.
+    private readonly DispatcherTimer _snapTimer;
+    private IReadOnlyList<CaptureRegion> _snapChain = Array.Empty<CaptureRegion>();
+    private int _snapIndex;
+    private bool _probeInFlight;
+    private int _wantProbePx, _wantProbePy;
+    private bool _haveWantProbe;
+    private int _lastProbePx = int.MinValue, _lastProbePy = int.MinValue;
+    private static readonly DoubleCollection PreviewDash = new(new double[] { 4, 3 });
+
+    // Press arbitration: in snap mode a press is deferred until we know whether
+    // it's a click (commit the snap) or a drag (manual selection).
+    private bool _pendingPress;
+    private int _pressPx, _pressPy;
+
     // Visual updates are coalesced to one per rendered frame: mouse-move events
     // fire far faster than this full-desktop layered window can repaint, so doing
     // the work on every move backs up the render queue and the overlay lags behind.
@@ -83,7 +101,11 @@ public partial class OverlayWindow : Window
         MouseLeftButtonDown += OnMouseDown;
         MouseLeftButtonUp += OnMouseUp;
         MouseMove += OnMouseMove;
+        MouseWheel += OnMouseWheel;
         KeyDown += OnKeyDown;
+
+        _snapTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(70) };
+        _snapTimer.Tick += OnSnapTick;
     }
 
     public nint ToolbarHandle { get; set; }
@@ -166,9 +188,12 @@ public partial class OverlayWindow : Window
         switch (_mode)
         {
             case CaptureMode.Custom:
-                if (_model is null || !_model.HasSelection || _model.Region.ToEvenDimensions().IsEmpty)
-                    return null;
-                return new CaptureTarget { Mode = CaptureMode.Custom, Region = _model.Region, Label = _model.Region.ToString() };
+                if (_model is { HasSelection: true } && !_model.Region.ToEvenDimensions().IsEmpty)
+                    return new CaptureTarget { Mode = CaptureMode.Custom, Region = _model.Region, Label = _model.Region.ToString() };
+                // No committed selection yet: a snap preview is recordable directly.
+                if (ShowingSnapPreview && !SnapRegion.ToEvenDimensions().IsEmpty)
+                    return new CaptureTarget { Mode = CaptureMode.Custom, Region = SnapRegion, Label = SnapRegion.ToString() };
+                return null;
             case CaptureMode.Display:
                 if (_hoverRegion.IsEmpty) return null;
                 return new CaptureTarget { Mode = CaptureMode.Display, Region = _hoverRegion, Label = _hoverLabel };
@@ -231,6 +256,7 @@ public partial class OverlayWindow : Window
         UpdateVisualsCore();
         PositionToolbar();
         UpdateDisplayMap();
+        _snapTimer.Start();
     }
 
     private void OnDisplayPicked(MonitorInfo m)
@@ -263,8 +289,64 @@ public partial class OverlayWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         CompositionTarget.Rendering -= OnRendering;
+        _snapTimer.Stop();
         var dim = _dim; _dim = null;
         try { dim?.Close(); } catch { }
+    }
+
+    // ---- logical-area snap (Custom mode) ---------------------------------
+
+    /// <summary>True while we should be previewing/probing logical areas.</summary>
+    private bool SnapEligible =>
+        _mode == CaptureMode.Custom && _model is { HasSelection: false } && !_dragging && !_pendingPress;
+
+    private bool ShowingSnapPreview =>
+        _mode == CaptureMode.Custom && (_model?.HasSelection == false) && _snapChain.Count > 0;
+
+    private CaptureRegion SnapRegion => _snapChain[Math.Clamp(_snapIndex, 0, _snapChain.Count - 1)];
+
+    private void OnSnapTick(object? sender, EventArgs e)
+    {
+        if (!SnapEligible || _probeInFlight || !_haveWantProbe) return;
+        if (_wantProbePx == _lastProbePx && _wantProbePy == _lastProbePy) return;
+
+        int px = _wantProbePx, py = _wantProbePy;
+        _lastProbePx = px; _lastProbePy = py;
+        _probeInFlight = true;
+        var own = new WindowInteropHelper(this).Handle;
+
+        Task.Run(() => LogicalAreaProbe.AreasAt(px, py, own, ToolbarHandle))
+            .ContinueWith(t =>
+            {
+                _probeInFlight = false;
+                if (SnapEligible) ApplyChain(t.Result);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    private void ApplyChain(IReadOnlyList<CaptureRegion> chain)
+    {
+        // Keep the user's scrolled depth only if we're still over the same element.
+        bool sameDeepest = _snapChain.Count > 0 && chain.Count > 0
+            && LogicalAreaProbe.NearEqual(_snapChain[0], chain[0]);
+
+        _snapChain = chain;
+        if (!sameDeepest) _snapIndex = 0;
+        _snapIndex = Math.Clamp(_snapIndex, 0, Math.Max(0, chain.Count - 1));
+
+        UpdateVisuals();
+        RaiseTarget();
+    }
+
+    private void OnMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (!SnapEligible || _snapChain.Count == 0) return;
+        // Wheel up → parent (larger area); wheel down → child (tighter area).
+        _snapIndex = e.Delta > 0
+            ? Math.Min(_snapIndex + 1, _snapChain.Count - 1)
+            : Math.Max(_snapIndex - 1, 0);
+        UpdateVisuals();
+        RaiseTarget();
+        e.Handled = true;
     }
 
     /// <summary>Flush a pending visual update at most once per rendered frame.</summary>
@@ -303,16 +385,26 @@ public partial class OverlayWindow : Window
         {
             _dragging = true; _drawingNew = false;
             _activeHandle = handle; _mouseHeldHandle = handle;
-        }
-        else
-        {
-            _model.BeginDraw(px, py);
-            _drawingNew = true; _dragging = true;
-            _activeHandle = SelectionHandle.BottomRight;
-            _mouseHeldHandle = SelectionHandle.None;
-            HintBadge.Visibility = Visibility.Collapsed;
+            CaptureMouse();
+            UpdateVisuals();
+            RaiseTarget();
+            return;
         }
 
+        if (!_model.HasSelection)
+        {
+            // Snap mode: defer until move/up decides click (commit) vs drag (draw).
+            _pendingPress = true; _pressPx = px; _pressPy = py;
+            CaptureMouse();
+            return;
+        }
+
+        // A selection exists but the press was outside it → start a fresh draw.
+        _model.BeginDraw(px, py);
+        _drawingNew = true; _dragging = true;
+        _activeHandle = SelectionHandle.BottomRight;
+        _mouseHeldHandle = SelectionHandle.None;
+        HintBadge.Visibility = Visibility.Collapsed;
         CaptureMouse();
         UpdateVisuals();
         RaiseTarget();
@@ -332,6 +424,26 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        if (_pendingPress)
+        {
+            int threshold = Math.Max(3, (int)(4 * _scale));
+            if (Math.Abs(px - _pressPx) > threshold || Math.Abs(py - _pressPy) > threshold)
+            {
+                // The press turned into a drag → manual rectangle, ignore the snap.
+                _pendingPress = false;
+                _snapChain = Array.Empty<CaptureRegion>();
+                _model.BeginDraw(_pressPx, _pressPy);
+                _drawingNew = true; _dragging = true;
+                _activeHandle = SelectionHandle.BottomRight;
+                _mouseHeldHandle = SelectionHandle.None;
+                HintBadge.Visibility = Visibility.Collapsed;
+                _model.DrawTo(px, py);
+                UpdateVisuals();
+                RaiseTarget();
+            }
+            return;
+        }
+
         if (_dragging)
         {
             if (_drawingNew) _model.DrawTo(px, py);
@@ -341,15 +453,38 @@ public partial class OverlayWindow : Window
             UpdateVisuals();
             RaiseTarget();
         }
-        else
+        else if (_model.HasSelection)
         {
             var handle = _model.HitTest(px, py, (int)(HandleTolerancePx * _scale));
             Cursor = CursorForHandle(handle);
+        }
+        else
+        {
+            // Snap mode: ask the background probe for the area under the cursor.
+            _wantProbePx = px; _wantProbePy = py; _haveWantProbe = true;
+            Cursor = Cursors.Cross;
         }
     }
 
     private void OnMouseUp(object sender, MouseButtonEventArgs e)
     {
+        if (_pendingPress)
+        {
+            // A plain click in snap mode → commit the previewed area as the real,
+            // now-resizable selection.
+            _pendingPress = false;
+            ReleaseMouseCapture();
+            if (_snapChain.Count > 0)
+            {
+                _model.Set(SnapRegion);
+                _snapChain = Array.Empty<CaptureRegion>();
+                _mouseHeldHandle = SelectionHandle.None;
+            }
+            UpdateVisuals();
+            RaiseTarget();
+            return;
+        }
+
         _dragging = false; _drawingNew = false;
         _mouseHeldHandle = SelectionHandle.None;
         ReleaseMouseCapture();
@@ -427,7 +562,8 @@ public partial class OverlayWindow : Window
 
     private CaptureRegion CurrentRegionPhysical() => _mode switch
     {
-        CaptureMode.Custom => _model?.Region ?? default,
+        CaptureMode.Custom => (_model?.HasSelection ?? false) ? _model!.Region
+            : (_snapChain.Count > 0 ? SnapRegion : default),
         _ => _hoverRegion,
     };
 
@@ -462,8 +598,17 @@ public partial class OverlayWindow : Window
         SelectionBorder.Width = Math.Max(0, holeRect.Width);
         SelectionBorder.Height = Math.Max(0, holeRect.Height);
 
-        if (_mode == CaptureMode.Custom) LayoutHandles(holeRect);
-        else HideHandles();
+        // A committed custom selection is resizable (handles, solid border); a
+        // snap preview is a plain dashed rectangle with no handles.
+        HideHandles();
+        SelectionBorder.StrokeDashArray = null;
+        if (_mode == CaptureMode.Custom)
+        {
+            if (_model?.HasSelection ?? false)
+                LayoutHandles(holeRect);
+            else
+                SelectionBorder.StrokeDashArray = PreviewDash;
+        }
 
         InfoText.Text = $"{region.Width} × {region.Height}";
         InfoBadge.Visibility = Visibility.Visible;
