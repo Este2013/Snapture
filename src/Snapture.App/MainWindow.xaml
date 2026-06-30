@@ -36,10 +36,20 @@
         <Border Grid.Row="1" Style="{StaticResource SegmentedContainer}"
                 HorizontalAlignment="Stretch" Margin="0,0,0,16">
             <UniformGrid Rows="1" Columns="2">
-                <RadioButton x:Name="TabSnapshot" Style="{StaticResource SegmentRadioButton}"
-                             GroupName="SettingsTab" Content="📷 Snapshot" />
-                <RadioButton x:Name="TabVideo" Style="{StaticResource SegmentRadioButton}"
-                             GroupName="SettingsTab" Content="🎬 Snapture" />
+                <RadioButton x:Name="TabSnapshot" Style="{StaticResource SegmentRadioButton}" GroupName="SettingsTab">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE722;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="Snapshot" VerticalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="TabVideo" Style="{StaticResource SegmentRadioButton}" GroupName="SettingsTab">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE714;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="Snapture" VerticalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
             </UniformGrid>
         </Border>
 
@@ -60,7 +70,7 @@
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Output format" Style="{StaticResource SettingLabel}" />
                 <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SegmentedContainer}"
-                        Margin="0,8" HorizontalAlignment="Right">
+                        Margin="0,8" HorizontalAlignment="Left">
                     <UniformGrid Rows="1" Columns="3">
                         <RadioButton x:Name="SnapFormatPng" Style="{StaticResource SegmentRadioButton}"
                                      GroupName="SnapFormat" Content="PNG" MinWidth="76" />
@@ -73,7 +83,7 @@
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Default capture mode" Style="{StaticResource SettingLabel}" />
                 <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SegmentedContainer}"
-                        Margin="0,8" HorizontalAlignment="Right">
+                        Margin="0,8" HorizontalAlignment="Left">
                     <UniformGrid Rows="1" Columns="3">
                         <RadioButton x:Name="SnapModeDisplay" Style="{StaticResource SegmentRadioButton}"
                                      GroupName="SnapMode" Content="Display" MinWidth="84" />
@@ -86,13 +96,13 @@
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Capture mouse cursor" Style="{StaticResource SettingLabel}" />
                 <CheckBox Grid.Row="2" Grid.Column="1" x:Name="SnapCursorSwitch"
-                          Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" Margin="0,8" />
+                          Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" Margin="0,8" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Library folder" VerticalAlignment="Top" Margin="0,12" />
-                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,8" HorizontalAlignment="Right">
+                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,8" HorizontalAlignment="Left">
                     <TextBlock x:Name="SnapLibraryPathText" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" TextAlignment="Right" MaxWidth="320" />
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Right">
+                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <Button x:Name="SnapOpenLibrary" Content="Open" />
                         <Button x:Name="SnapChangeLibrary" Content="Change…" Margin="8,0,0,0" />
                         <Button x:Name="SnapResetLibrary" Content="Use default" Margin="8,0,0,0" />
@@ -117,7 +127,7 @@
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Output format" Style="{StaticResource SettingLabel}" />
                 <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SegmentedContainer}"
-                        Margin="0,8" HorizontalAlignment="Right">
+                        Margin="0,8" HorizontalAlignment="Left">
                     <UniformGrid Rows="1" Columns="3">
                         <RadioButton x:Name="VidFormatMp4" Style="{StaticResource SegmentRadioButton}"
                                      GroupName="VidFormat" Content="MP4" MinWidth="76" />
@@ -130,7 +140,7 @@
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Default capture mode" Style="{StaticResource SettingLabel}" />
                 <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SegmentedContainer}"
-                        Margin="0,8" HorizontalAlignment="Right">
+                        Margin="0,8" HorizontalAlignment="Left">
                     <UniformGrid Rows="1" Columns="3">
                         <RadioButton x:Name="VidModeDisplay" Style="{StaticResource SegmentRadioButton}"
                                      GroupName="VidMode" Content="Display" MinWidth="84" />
@@ -167,13 +177,13 @@
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Capture mouse cursor" Style="{StaticResource SettingLabel}" />
                 <CheckBox Grid.Row="4" Grid.Column="1" x:Name="VidCursorSwitch"
-                          Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" Margin="0,8" />
+                          Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" Margin="0,8" />
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Library folder" VerticalAlignment="Top" Margin="0,12" />
-                <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,8" HorizontalAlignment="Right">
+                <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,8" HorizontalAlignment="Left">
                     <TextBlock x:Name="VidLibraryPathText" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" TextAlignment="Right" MaxWidth="320" />
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Right">
+                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <Button x:Name="VidOpenLibrary" Content="Open" />
                         <Button x:Name="VidChangeLibrary" Content="Change…" Margin="8,0,0,0" />
                         <Button x:Name="VidResetLibrary" Content="Use default" Margin="8,0,0,0" />
@@ -194,7 +204,7 @@
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Grid.Column="0" Text="Stream Deck server" VerticalAlignment="Center" Margin="0,12" />
-            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,8" HorizontalAlignment="Right">
+            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,8" HorizontalAlignment="Left">
                 <CheckBox x:Name="ServerCheck" Content="Enable on port" VerticalAlignment="Center" />
                 <TextBox x:Name="PortBox" Width="80" Margin="10,0,0,0" VerticalAlignment="Center" />
             </StackPanel>

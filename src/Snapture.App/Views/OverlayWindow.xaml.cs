@@ -153,7 +153,7 @@ public partial class OverlayWindow : Window
     }
 
     private void UpdateActionButton() =>
-        RecordButton.Content = _kind == CaptureKind.Image ? "📷 Snapshot" : "● Record";
+        RecordButton.Content = _kind == CaptureKind.Image ? "◍ Snapshot" : "● Record";
 
     private void OnToolbarMouseDown(object sender, MouseButtonEventArgs e)
     {
