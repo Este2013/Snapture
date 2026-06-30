@@ -11,8 +11,8 @@
         Cursor="Cross"
         FontFamily="Segoe UI Variable Text, Segoe UI">
     <Canvas x:Name="RootCanvas" ClipToBounds="True">
-        <!-- Dim everywhere except the selection (even-odd hole) -->
-        <Path x:Name="DimPath" Fill="#8C000000" />
+        <!-- The dim is rendered by a separate GPU-composited DimWindow behind this
+             one; this window stays a lightweight input + chrome layer. -->
 
         <!-- Selection outline -->
         <Rectangle x:Name="SelectionBorder"
