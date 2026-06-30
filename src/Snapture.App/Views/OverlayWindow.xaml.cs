@@ -47,6 +47,9 @@ public partial class OverlayWindow : Window
     private DimWindow? _dim;
     private const byte DimAlpha = 0x8C; // matches the previous #8C000000 shade
 
+    // Display-mode picker: a Windows-Settings-style map of all monitors.
+    private DisplayMapControl? _displayMap;
+
     // Visual updates are coalesced to one per rendered frame: mouse-move events
     // fire far faster than this full-desktop layered window can repaint, so doing
     // the work on every move backs up the render queue and the overlay lags behind.
@@ -76,7 +79,7 @@ public partial class OverlayWindow : Window
         WireToolbar(mode);
 
         Loaded += OnLoaded;
-        SizeChanged += (_, _) => { UpdateVisuals(); PositionToolbar(); };
+        SizeChanged += (_, _) => { UpdateVisuals(); PositionToolbar(); UpdateDisplayMap(); };
         MouseLeftButtonDown += OnMouseDown;
         MouseLeftButtonUp += OnMouseUp;
         MouseMove += OnMouseMove;
@@ -154,6 +157,7 @@ public partial class OverlayWindow : Window
         if (mode != CaptureMode.Custom)
             UpdateHoverTarget(_cursorPx, _cursorPy);
         UpdateVisuals();
+        UpdateDisplayMap();
         RaiseTarget();
     }
 
@@ -217,8 +221,43 @@ public partial class OverlayWindow : Window
             _renderHooked = true;
         }
 
+        // Build the display picker once; visibility tracks Display mode. Inserted
+        // at the bottom of the z-order so the toolbar and selection chrome stay on top.
+        _displayMap = new DisplayMapControl { Visibility = Visibility.Collapsed };
+        _displayMap.DisplayClicked += OnDisplayPicked;
+        RootCanvas.Children.Insert(0, _displayMap);
+        _displayMap.Build(ScreenInfo.GetMonitors());
+
         UpdateVisualsCore();
         PositionToolbar();
+        UpdateDisplayMap();
+    }
+
+    private void OnDisplayPicked(MonitorInfo m)
+    {
+        _hoverRegion = m.Bounds;
+        _hoverWindow = nint.Zero;
+        _hoverLabel = $"{m.Bounds.Width}x{m.Bounds.Height}" + (m.IsPrimary ? " (primary)" : "");
+        Confirmed?.Invoke();
+    }
+
+    /// <summary>Toggle, position and refresh the display map for the current mode.</summary>
+    private void UpdateDisplayMap()
+    {
+        if (_displayMap is null) return;
+
+        if (_mode != CaptureMode.Display)
+        {
+            _displayMap.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        _displayMap.Visibility = Visibility.Visible;
+        _displayMap.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var (px, py, pw, ph) = PrimaryMonitorDip();
+        Canvas.SetLeft(_displayMap, px + (pw - _displayMap.DesiredSize.Width) / 2);
+        Canvas.SetTop(_displayMap, py + (ph - _displayMap.DesiredSize.Height) / 2);
+        _displayMap.UpdateMouse(_cursorPx, _cursorPy);
     }
 
     private void OnClosed(object? sender, EventArgs e)
@@ -287,6 +326,7 @@ public partial class OverlayWindow : Window
         if (_mode != CaptureMode.Custom)
         {
             UpdateHoverTarget(px, py);
+            if (_mode == CaptureMode.Display) _displayMap?.UpdateMouse(px, py);
             UpdateVisuals();
             RaiseTarget();
             return;
