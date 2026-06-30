@@ -1,0 +1,116 @@
+<Window x:Class="Snapture.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Snapture"
+        Width="520" SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanMinimize"
+        UseLayoutRounding="True"
+        FontFamily="Segoe UI Variable Text, Segoe UI">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+            <Ellipse Width="22" Height="22" Stroke="{StaticResource RecordAccentBrush}"
+                     StrokeThickness="3" VerticalAlignment="Center" />
+            <TextBlock Text="Snapture" FontSize="22" FontWeight="SemiBold"
+                       Margin="12,0,0,0" VerticalAlignment="Center" />
+            <TextBlock Text="screen recorder" FontSize="13" VerticalAlignment="Bottom"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="8,0,0,4" />
+        </StackPanel>
+
+        <!-- Settings -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Output format" VerticalAlignment="Center" Margin="0,8" />
+            <ComboBox  Grid.Row="0" Grid.Column="1" x:Name="FormatCombo" Margin="0,8" HorizontalAlignment="Left" MinWidth="200" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Default capture mode" VerticalAlignment="Center" Margin="0,8" />
+            <Border    Grid.Row="1" Grid.Column="1" Style="{StaticResource SegmentedContainer}"
+                       Margin="0,8" HorizontalAlignment="Left">
+                <UniformGrid Rows="1" Columns="3">
+                    <RadioButton x:Name="ModeDisplay" Style="{StaticResource SegmentRadioButton}"
+                                 GroupName="Mode" Content="Display" MinWidth="84" />
+                    <RadioButton x:Name="ModeWindow" Style="{StaticResource SegmentRadioButton}"
+                                 GroupName="Mode" Content="Window" MinWidth="84" />
+                    <RadioButton x:Name="ModeCustom" Style="{StaticResource SegmentRadioButton}"
+                                 GroupName="Mode" Content="Custom" MinWidth="84" />
+                </UniformGrid>
+            </Border>
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Frame rate" VerticalAlignment="Center" Margin="0,8" />
+            <Grid Grid.Row="2" Grid.Column="1" Margin="0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Slider x:Name="FpsSlider" Grid.Column="0" Minimum="5" Maximum="60"
+                        TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                <TextBlock x:Name="FpsValue" Grid.Column="1" MinWidth="56" TextAlignment="Right"
+                           VerticalAlignment="Center" Margin="12,0,0,0" />
+            </Grid>
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Quality" VerticalAlignment="Center" Margin="0,8" />
+            <Grid Grid.Row="3" Grid.Column="1" Margin="0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Slider x:Name="QualitySlider" Grid.Column="0" Minimum="0" Maximum="100"
+                        TickFrequency="10" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                <TextBlock x:Name="QualityValue" Grid.Column="1" MinWidth="56" TextAlignment="Right"
+                           VerticalAlignment="Center" Margin="12,0,0,0" />
+            </Grid>
+
+            <CheckBox Grid.Row="4" Grid.Column="1" x:Name="CursorCheck"
+                      Content="Capture mouse cursor" Margin="0,8" />
+
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="Library folder" VerticalAlignment="Top" Margin="0,12" />
+            <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,8">
+                <TextBlock x:Name="LibraryPathText" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button x:Name="OpenLibraryButton" Content="Open" />
+                    <Button x:Name="ChangeLibraryButton" Content="Change…" Margin="8,0,0,0" />
+                    <Button x:Name="ResetLibraryButton" Content="Use default" Margin="8,0,0,0" />
+                </StackPanel>
+            </StackPanel>
+
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="Stream Deck server" VerticalAlignment="Center" Margin="0,12" />
+            <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Margin="0,8">
+                <CheckBox x:Name="ServerCheck" Content="Enable on port" VerticalAlignment="Center" />
+                <TextBox x:Name="PortBox" Width="80" Margin="10,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" x:Name="FfmpegStatus"
+                       Margin="0,12,0,0" FontSize="12" TextTrimming="CharacterEllipsis"
+                       TextWrapping="NoWrap" Cursor="Hand" ToolTipService.InitialShowDelay="200"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Grid>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+            <Button x:Name="StartButton" Style="{StaticResource RecordButton}" Content="● Start capture" Padding="18,8" />
+            <Button x:Name="CloseButton" Content="Close" Margin="10,0,0,0" Padding="18,8" />
+        </StackPanel>
+    </Grid>
+</Window>

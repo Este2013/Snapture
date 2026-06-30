@@ -1,0 +1,63 @@
+<Window x:Class="Snapture.App.Views.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        ShowInTaskbar="False"
+        Background="#01000000"
+        Topmost="True"
+        Focusable="True"
+        Cursor="Cross"
+        FontFamily="Segoe UI Variable Text, Segoe UI">
+    <Canvas x:Name="RootCanvas" ClipToBounds="True">
+        <!-- Dim everywhere except the selection (even-odd hole) -->
+        <Path x:Name="DimPath" Fill="#8C000000" />
+
+        <!-- Selection outline -->
+        <Rectangle x:Name="SelectionBorder"
+                   Stroke="#F04747" StrokeThickness="1.5"
+                   Visibility="Collapsed" />
+
+        <!-- Size badge -->
+        <Border x:Name="InfoBadge" Background="#CC000000" CornerRadius="4"
+                Padding="8,4" Visibility="Collapsed">
+            <TextBlock x:Name="InfoText" Foreground="White" FontSize="12"
+                       FontFamily="Consolas" />
+        </Border>
+
+        <!-- First-run hint -->
+        <Border x:Name="HintBadge" Background="#CC000000" CornerRadius="6" Padding="14,10">
+            <TextBlock x:Name="HintText" Foreground="White" FontSize="13"
+                       TextAlignment="Center"
+                       Text="Drag to select an area  •  Arrow keys nudge  •  Enter to record  •  Esc to cancel" />
+        </Border>
+
+        <!-- Operable toolbar (rendered last → always above the dim) -->
+        <Border x:Name="Toolbar" CornerRadius="10" Padding="10,8"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="20" ShadowDepth="3" Opacity="0.55" Color="Black" />
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal">
+                <Border Style="{StaticResource SegmentedContainer}" VerticalAlignment="Center">
+                    <UniformGrid Rows="1" Columns="3">
+                        <RadioButton x:Name="ModeDisplay" Style="{StaticResource SegmentRadioButton}"
+                                     GroupName="OverlayMode" Content="Display" MinWidth="78" />
+                        <RadioButton x:Name="ModeWindow" Style="{StaticResource SegmentRadioButton}"
+                                     GroupName="OverlayMode" Content="Window" MinWidth="78" />
+                        <RadioButton x:Name="ModeCustom" Style="{StaticResource SegmentRadioButton}"
+                                     GroupName="OverlayMode" Content="Custom" MinWidth="78" />
+                    </UniformGrid>
+                </Border>
+
+                <ComboBox x:Name="FormatCombo" Width="120" Margin="12,0,0,0" VerticalAlignment="Center" />
+
+                <Button x:Name="RecordButton" Style="{StaticResource RecordButton}"
+                        Content="● Record" Margin="12,0,0,0" />
+                <Button x:Name="CancelButton" Content="Cancel" Margin="8,0,0,0" Padding="14,7" />
+            </StackPanel>
+        </Border>
+    </Canvas>
+</Window>

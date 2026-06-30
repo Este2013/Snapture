@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Snapture.App/Snapture.App.csproj" />
+    <Project Path="src/Snapture.Core/Snapture.Core.csproj" />
+  </Folder>
+</Solution>
