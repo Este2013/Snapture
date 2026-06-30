@@ -33,9 +33,11 @@
                        Text="Drag to select an area  •  Arrow keys nudge  •  Enter to record  •  Esc to cancel" />
         </Border>
 
-        <!-- Operable toolbar (rendered last → always above the dim) -->
+        <!-- Operable toolbar (rendered last → always above the dim).
+             Opaque background and SizeAll cursor so it reads as draggable; drag
+             it by any empty area to move it out of the way. -->
         <Border x:Name="Toolbar" CornerRadius="10" Padding="10,8"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Background="#FF2B2B2B" Cursor="SizeAll"
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="20" ShadowDepth="3" Opacity="0.55" Color="Black" />

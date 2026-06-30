@@ -74,13 +74,16 @@ public sealed class GdiFrameSource : IFrameSource
         if (_disposed)
             return null;
 
-        // CAPTUREBLT pulls in layered/transparent windows correctly.
+        // SRCCOPY only — deliberately no CAPTUREBLT. CAPTUREBLT forces Windows to
+        // hide and redraw the hardware cursor on every BitBlt, which makes the
+        // on-screen cursor flicker (appearing to jump to 0,0) during a recording.
+        // The DWM already composites normal and layered windows into the screen
+        // DC, so SRCCOPY captures them fine, and we draw the cursor ourselves below.
         const int SRCCOPY = 0x00CC0020;
-        const int CAPTUREBLT = 0x40000000;
 
         var ok = NativeMethods.BitBlt(
             _memDc, 0, 0, Width, Height,
-            _screenDc, _region.X, _region.Y, SRCCOPY | CAPTUREBLT);
+            _screenDc, _region.X, _region.Y, SRCCOPY);
         if (!ok)
             return null;
 

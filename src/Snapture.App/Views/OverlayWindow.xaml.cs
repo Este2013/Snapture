@@ -43,10 +43,33 @@ public partial class OverlayWindow : Window
     private nint _hoverWindow;
     private string? _hoverLabel;
 
+    // Reused dim geometry — mutating .Rect each frame avoids per-move allocation.
+    private readonly RectangleGeometry _outerGeo = new();
+    private readonly RectangleGeometry _holeGeo = new();
+    private readonly GeometryGroup _dimGroup;
+
+    // Visual updates are coalesced to one per rendered frame: mouse-move events
+    // fire far faster than this full-desktop layered window can repaint, so doing
+    // the work on every move backs up the render queue and the overlay lags behind.
+    private bool _visualsDirty;
+    private bool _renderHooked;
+
+    // Toolbar dragging (move it out of the way; not persisted across sessions).
+    private bool _toolbarDragging;
+    private bool _toolbarMoved;
+    private Point _toolbarDragOrigin;
+    private double _toolbarStartLeft, _toolbarStartTop;
+
     public OverlayWindow(CaptureMode mode, OutputFormat format)
     {
         InitializeComponent();
         _mode = mode;
+
+        _dimGroup = new GeometryGroup { FillRule = FillRule.EvenOdd };
+        _dimGroup.Children.Add(_outerGeo);
+        _dimGroup.Children.Add(_holeGeo);
+        DimPath.Data = _dimGroup;
+
         CreateHandles();
 
         FormatCombo.ItemsSource = new[]
@@ -95,6 +118,40 @@ public partial class OverlayWindow : Window
         RecordButton.Click += (_, _) => { if (GetCurrentTarget() is not null) Confirmed?.Invoke(); };
         CancelButton.Click += (_, _) => Cancelled?.Invoke();
         Toolbar.SizeChanged += (_, _) => PositionToolbar();
+
+        // Drag the toolbar by any empty area; child controls handle their own
+        // clicks so this only fires on the toolbar background/padding.
+        Toolbar.MouseLeftButtonDown += OnToolbarMouseDown;
+        Toolbar.MouseMove += OnToolbarMouseMove;
+        Toolbar.MouseLeftButtonUp += OnToolbarMouseUp;
+    }
+
+    private void OnToolbarMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _toolbarDragging = true;
+        _toolbarDragOrigin = e.GetPosition(RootCanvas);
+        _toolbarStartLeft = Canvas.GetLeft(Toolbar);
+        _toolbarStartTop = Canvas.GetTop(Toolbar);
+        Toolbar.CaptureMouse();
+        e.Handled = true; // don't let the window start a new selection
+    }
+
+    private void OnToolbarMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_toolbarDragging) return;
+        var p = e.GetPosition(RootCanvas);
+        Canvas.SetLeft(Toolbar, _toolbarStartLeft + (p.X - _toolbarDragOrigin.X));
+        Canvas.SetTop(Toolbar, _toolbarStartTop + (p.Y - _toolbarDragOrigin.Y));
+        _toolbarMoved = true; // stop auto-recentring once the user has moved it
+        e.Handled = true;
+    }
+
+    private void OnToolbarMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_toolbarDragging) return;
+        _toolbarDragging = false;
+        Toolbar.ReleaseMouseCapture();
+        e.Handled = true;
     }
 
     private void OnModePicked(CaptureMode mode)
@@ -152,8 +209,24 @@ public partial class OverlayWindow : Window
         }
 
         _loaded = true;
-        UpdateVisuals();
+
+        if (!_renderHooked)
+        {
+            CompositionTarget.Rendering += OnRendering;
+            Closed += (_, _) => CompositionTarget.Rendering -= OnRendering;
+            _renderHooked = true;
+        }
+
+        UpdateVisualsCore();
         PositionToolbar();
+    }
+
+    /// <summary>Flush a pending visual update at most once per rendered frame.</summary>
+    private void OnRendering(object? sender, EventArgs e)
+    {
+        if (!_visualsDirty) return;
+        _visualsDirty = false;
+        UpdateVisualsCore();
     }
 
     // ---- coordinate conversion -------------------------------------------
@@ -311,16 +384,17 @@ public partial class OverlayWindow : Window
         _ => _hoverRegion,
     };
 
-    private void UpdateVisuals()
+    /// <summary>Mark visuals dirty; the actual work runs on the next render frame.</summary>
+    private void UpdateVisuals() => _visualsDirty = true;
+
+    private void UpdateVisualsCore()
     {
         var region = CurrentRegionPhysical();
-        var canvasW = RootCanvas.ActualWidth;
-        var canvasH = RootCanvas.ActualHeight;
-        var outer = new RectangleGeometry(new Rect(0, 0, canvasW, canvasH));
+        _outerGeo.Rect = new Rect(0, 0, RootCanvas.ActualWidth, RootCanvas.ActualHeight);
 
         if (region.IsEmpty)
         {
-            DimPath.Data = outer;
+            _holeGeo.Rect = Rect.Empty;
             SelectionBorder.Visibility = Visibility.Collapsed;
             InfoBadge.Visibility = Visibility.Collapsed;
             HideHandles();
@@ -334,10 +408,7 @@ public partial class OverlayWindow : Window
             PhysXToDip(region.X), PhysYToDip(region.Y),
             region.Width / _scale, region.Height / _scale);
 
-        var group = new GeometryGroup { FillRule = FillRule.EvenOdd };
-        group.Children.Add(outer);
-        group.Children.Add(new RectangleGeometry(holeRect));
-        DimPath.Data = group;
+        _holeGeo.Rect = holeRect;
 
         SelectionBorder.Visibility = Visibility.Visible;
         Canvas.SetLeft(SelectionBorder, holeRect.X);
@@ -376,7 +447,7 @@ public partial class OverlayWindow : Window
 
     private void PositionToolbar()
     {
-        if (!_loaded) return;
+        if (!_loaded || _toolbarMoved) return;
         Toolbar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var width = Toolbar.ActualWidth > 0 ? Toolbar.ActualWidth : Toolbar.DesiredSize.Width;
         var (px, py, pw, _) = PrimaryMonitorDip();
