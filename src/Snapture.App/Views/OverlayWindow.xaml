@@ -43,7 +43,17 @@
                 <DropShadowEffect BlurRadius="20" ShadowDepth="3" Opacity="0.55" Color="Black" />
             </Border.Effect>
             <StackPanel Orientation="Horizontal">
+                <!-- Lead with the capture kind: still snapshot vs video. -->
                 <Border Style="{StaticResource SegmentedContainer}" VerticalAlignment="Center">
+                    <UniformGrid Rows="1" Columns="2">
+                        <RadioButton x:Name="KindSnapshot" Style="{StaticResource SegmentRadioButton}"
+                                     GroupName="OverlayKind" Content="📷 Snapshot" MinWidth="92" />
+                        <RadioButton x:Name="KindVideo" Style="{StaticResource SegmentRadioButton}"
+                                     GroupName="OverlayKind" Content="🎬 Video" MinWidth="92" />
+                    </UniformGrid>
+                </Border>
+
+                <Border Style="{StaticResource SegmentedContainer}" VerticalAlignment="Center" Margin="12,0,0,0">
                     <UniformGrid Rows="1" Columns="3">
                         <RadioButton x:Name="ModeDisplay" Style="{StaticResource SegmentRadioButton}"
                                      GroupName="OverlayMode" Content="Display" MinWidth="78" />
@@ -53,8 +63,6 @@
                                      GroupName="OverlayMode" Content="Custom" MinWidth="78" />
                     </UniformGrid>
                 </Border>
-
-                <ComboBox x:Name="FormatCombo" Width="120" Margin="12,0,0,0" VerticalAlignment="Center" />
 
                 <Button x:Name="RecordButton" Style="{StaticResource RecordButton}"
                         Content="● Record" Margin="12,0,0,0" />

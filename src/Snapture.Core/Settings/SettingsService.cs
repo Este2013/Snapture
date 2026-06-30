@@ -50,6 +50,22 @@ public sealed class SettingsService
         return folder;
     }
 
+    /// <summary>The directory snapshots are saved to (Pictures by default), created if needed.</summary>
+    public string ResolveSnapshotLibraryFolder()
+    {
+        var folder = Current.SnapshotLibraryFolder;
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+            folder = Path.Combine(pictures, AppFolderName);
+        }
+
+        try { Directory.CreateDirectory(folder); }
+        catch { /* surfaced later when the encoder tries to write */ }
+
+        return folder;
+    }
+
     public AppSettings Load()
     {
         lock (_gate)

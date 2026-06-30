@@ -49,12 +49,17 @@ echoes it so the client can correlate replies.
 | `command` | `args` | Effect |
 | --- | --- | --- |
 | `getState` | — | Returns the current state. |
-| `getSettings` | — | Returns format / mode / fps / quality / library path. |
-| `start` | `{ "mode": "display\|window\|custom" }` | Begin recording. `display`/`window` capture the target **under the cursor instantly** (true one-press). `custom` opens the selection overlay. `mode` is optional; defaults to the configured default mode. |
+| `getSettings` | — | Returns video format / mode / fps / quality / library, plus a nested `snapshot` object. |
+| `start` | `{ "mode": "display\|window\|custom" }` | Begin **video** recording. `display`/`window` capture the target **under the cursor instantly** (true one-press). `custom` opens the selection overlay. `mode` is optional; defaults to the configured default mode. |
+| `snapshot` | `{ "mode": "display\|window\|custom" }` | Take a **still image**. `display`/`window` capture under the cursor instantly; `custom` opens the selection overlay. `mode` optional; defaults to the configured snapshot mode. |
 | `stop` | — | Stop and finalize the current recording. |
 | `abort` | — | Cancel selection or discard the in-progress recording. |
-| `setFormat` | `{ "format": "mp4\|gif\|webp" }` | Change the output format. |
-| `setMode` | `{ "mode": "display\|window\|custom" }` | Change the default capture mode. |
+| `setFormat` | `{ "format": "mp4\|gif\|webp" }` | Change the video output format. |
+| `setMode` | `{ "mode": "display\|window\|custom" }` | Change the default video capture mode. |
+| `setSnapshotFormat` | `{ "format": "png\|jpeg\|webp" }` | Change the snapshot image format. |
+| `setSnapshotMode` | `{ "mode": "display\|window\|custom" }` | Change the default snapshot capture mode. |
+
+A completed snapshot pushes a `snapshotCompleted` event with `{ ok, path, error }`.
 
 Example:
 
@@ -76,7 +81,9 @@ One response per command:
 ```json
 {"type":"response","id":"3","ok":true,"state":"idle",
  "data":{"format":"Mp4","mode":"Custom","frameRate":30,"quality":70,
-         "library":"C:\\Users\\me\\Videos\\Snapture"}}
+         "library":"C:\\Users\\me\\Videos\\Snapture",
+         "snapshot":{"format":"Png","mode":"Display","captureCursor":true,
+                     "library":"C:\\Users\\me\\Pictures\\Snapture"}}}
 ```
 
 ## Events (server → client, unsolicited)

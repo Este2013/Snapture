@@ -12,6 +12,7 @@ using Snapture.Core.Ipc;
 using Snapture.Core.Models;
 using Snapture.Core.Recording;
 using Snapture.Core.Settings;
+using Snapture.Core.Snapshot;
 
 namespace Snapture.App;
 
@@ -26,6 +27,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly SettingsService _settings;
     private readonly RecordingController _controller;
+    private readonly SnapshotService _snapshot;
     private ControlServer? _server;
 
     private TaskbarIcon? _tray;
@@ -48,6 +50,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _settings = new SettingsService();
         _settings.Load();
         _controller = new RecordingController(_settings);
+        _snapshot = new SnapshotService(_settings);
 
         _controller.StateChanged += OnStateChanged;
         _controller.RecordingCompleted += OnRecordingCompleted;
@@ -66,7 +69,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     public void Startup()
     {
         BuildTray();
-        _mainWindow = new MainWindow(_settings, () => BeginSelection(null));
+        _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null));
         StartControlServerIfEnabled();
     }
 
@@ -96,7 +99,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
                 _ = StopAsync();
                 break;
             case RecordingState.Idle:
-                BeginSelection(null);
+                BeginSelection(CaptureKind.Video, null);
                 break;
             // Selecting/Encoding: ignore.
         }
@@ -113,7 +116,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             return mi;
         }
 
-        menu.Items.Add(Item("Capture", () => BeginSelection(null)));
+        menu.Items.Add(Item("Record video", () => BeginSelection(CaptureKind.Video, null)));
+        menu.Items.Add(Item("Take snapshot", () => BeginSelection(CaptureKind.Image, null)));
         menu.Items.Add(Item("Settings…", ShowSettings));
         menu.Items.Add(Item("Open library folder", OpenLibrary));
         menu.Items.Add(new Separator());
@@ -123,7 +127,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
     private void ShowSettings()
     {
-        _mainWindow ??= new MainWindow(_settings, () => BeginSelection(null));
+        _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null));
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
@@ -141,32 +145,85 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
     // ---- selection / recording flow --------------------------------------
 
-    private void BeginSelection(CaptureMode? modeOverride)
+    private void BeginSelection(CaptureKind kind, CaptureMode? modeOverride)
     {
         if (_controller.State != RecordingState.Idle)
             return;
         if (!_controller.BeginSelection())
             return;
 
-        var mode = modeOverride ?? _settings.Current.DefaultCaptureMode;
+        var mode = modeOverride ?? (kind == CaptureKind.Image
+            ? _settings.Current.SnapshotCaptureMode
+            : _settings.Current.DefaultCaptureMode);
 
-        _overlay = new OverlayWindow(mode, _settings.Current.OutputFormat);
-        _overlay.FormatChanged += f => { _settings.Current.OutputFormat = f; _settings.Save(_settings.Current); };
+        _overlay = new OverlayWindow(kind, mode);
         _overlay.Confirmed += ConfirmAndStart;
         _overlay.Cancelled += () => _ = CancelAsync();
+        _overlay.CaptureModeChanged += OnOverlayCaptureModeChanged;
         _overlay.Show();
         _overlay.Activate();
     }
 
+    /// <summary>A mid-pick capture-mode change overrides the saved default for that kind.</summary>
+    private void OnOverlayCaptureModeChanged()
+    {
+        if (_overlay is null) return;
+        if (_overlay.Kind == CaptureKind.Image)
+            _settings.Current.SnapshotCaptureMode = _overlay.Mode;
+        else
+            _settings.Current.DefaultCaptureMode = _overlay.Mode;
+        _settings.Save(_settings.Current);
+    }
+
     private void ConfirmAndStart()
     {
-        var target = _overlay?.GetCurrentTarget();
-        if (target is null)
+        var overlay = _overlay;
+        var target = overlay?.GetCurrentTarget();
+        if (overlay is null || target is null)
             return;
 
+        var kind = overlay.Kind;
         CloseOverlay(); // dim disappears; the rest of the desktop is usable again
-        ShowRecordingBar();
-        StartRecordingCore(target);
+
+        if (kind == CaptureKind.Image)
+            _ = TakeSnapshotAsync(target);
+        else
+        {
+            ShowRecordingBar();
+            StartRecordingCore(target);
+        }
+    }
+
+    private async Task TakeSnapshotAsync(CaptureTarget target)
+    {
+        // Snapshots don't drive the recording state machine; release the
+        // Selecting state the overlay reserved so the app returns to Idle.
+        await _controller.AbortAsync();
+
+        var result = await _snapshot.CaptureAsync(target);
+
+        _ = _dispatcher.BeginInvoke(() =>
+        {
+            if (result.Success)
+            {
+                _lastSavedPath = result.OutputPath;
+                Notify("Snapshot saved",
+                    $"{Path.GetFileName(result.OutputPath)} — click to open", BalloonIcon.Info);
+                if (_settings.Current.RevealAfterSave && result.OutputPath is not null)
+                    Reveal(result.OutputPath);
+            }
+            else
+            {
+                Notify("Snapshot failed", result.Error ?? "Unknown error", BalloonIcon.Error);
+            }
+        });
+
+        _server?.Broadcast(new ControlEvent
+        {
+            Event = "snapshotCompleted",
+            State = StateName(_controller.State),
+            Data = new { ok = result.Success, path = result.OutputPath, error = result.Error },
+        });
     }
 
     private void ShowRecordingBar()
@@ -300,10 +357,38 @@ public sealed class AppController : IControlCommandHandler, IDisposable
                     frameRate = s.FrameRate,
                     quality = s.Quality,
                     library = _settings.ResolveLibraryFolder(),
+                    snapshot = new
+                    {
+                        format = s.SnapshotFormat.ToString(),
+                        mode = s.SnapshotCaptureMode.ToString(),
+                        captureCursor = s.SnapshotCaptureCursor,
+                        library = _settings.ResolveSnapshotLibraryFolder(),
+                    },
                 });
 
             case "start":
                 return HandleStart(command);
+
+            case "snapshot":
+                return HandleSnapshot(command);
+
+            case "setsnapshotformat":
+                if (Enum.TryParse<ImageFormat>(command.GetString("format"), true, out var sfmt))
+                {
+                    _settings.Current.SnapshotFormat = sfmt;
+                    _settings.Save(_settings.Current);
+                    return ControlResponse.Success(command.Id, state);
+                }
+                return ControlResponse.Failure(command.Id, "Unknown snapshot format.", state);
+
+            case "setsnapshotmode":
+                if (Enum.TryParse<CaptureMode>(command.GetString("mode"), true, out var smode))
+                {
+                    _settings.Current.SnapshotCaptureMode = smode;
+                    _settings.Save(_settings.Current);
+                    return ControlResponse.Success(command.Id, state);
+                }
+                return ControlResponse.Failure(command.Id, "Unknown snapshot mode.", state);
 
             case "stop":
                 if (_controller.State != RecordingState.Recording)
@@ -353,7 +438,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
         if (mode == CaptureMode.Custom)
         {
-            BeginSelection(CaptureMode.Custom);
+            BeginSelection(CaptureKind.Video, CaptureMode.Custom);
             return ControlResponse.Success(command.Id, StateName(_controller.State));
         }
 
@@ -369,6 +454,39 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
         ShowRecordingBar();
         StartRecordingCore(target);
+        return ControlResponse.Success(command.Id, StateName(_controller.State));
+    }
+
+    /// <summary>
+    /// IPC snapshot. Mirrors <see cref="HandleStart"/> but produces a still image:
+    /// Display/Window capture instantly from the cursor; Custom opens the overlay.
+    /// </summary>
+    private ControlResponse HandleSnapshot(ControlCommand command)
+    {
+        if (_controller.State != RecordingState.Idle)
+            return ControlResponse.Failure(command.Id, "Already busy.", StateName(_controller.State));
+
+        var mode = Enum.TryParse<CaptureMode>(command.GetString("mode"), true, out var m)
+            ? m
+            : _settings.Current.SnapshotCaptureMode;
+
+        if (mode == CaptureMode.Custom)
+        {
+            BeginSelection(CaptureKind.Image, CaptureMode.Custom);
+            return ControlResponse.Success(command.Id, StateName(_controller.State));
+        }
+
+        if (!NativeMethods.GetCursorPos(out var p))
+            return ControlResponse.Failure(command.Id, "Cursor position unavailable.");
+
+        CaptureTarget? target = mode == CaptureMode.Display
+            ? DisplayTargetAt(p.X, p.Y)
+            : WindowTargetAt(p.X, p.Y);
+
+        if (target is null)
+            return ControlResponse.Failure(command.Id, "No capture target under cursor.");
+
+        _ = TakeSnapshotAsync(target);
         return ControlResponse.Success(command.Id, StateName(_controller.State));
     }
 

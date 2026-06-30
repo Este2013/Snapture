@@ -8,6 +8,21 @@ public enum OutputFormat
     WebP,
 }
 
+/// <summary>Still-image format a snapshot is saved as.</summary>
+public enum ImageFormat
+{
+    Png,
+    Jpeg,
+    WebP,
+}
+
+/// <summary>Whether a capture produces a video recording or a still snapshot.</summary>
+public enum CaptureKind
+{
+    Video,
+    Image,
+}
+
 /// <summary>How the capture area is chosen.</summary>
 public enum CaptureMode
 {

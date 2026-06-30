@@ -33,6 +33,23 @@ public sealed class AppSettings
     /// <summary>Capture the system cursor into the recording.</summary>
     public bool CaptureCursor { get; set; } = true;
 
+    // ---- Snapshot (still image) settings ---------------------------------
+
+    /// <summary>Still-image format used when saving a snapshot.</summary>
+    public ImageFormat SnapshotFormat { get; set; } = ImageFormat.Png;
+
+    /// <summary>Capture mode pre-selected when the overlay opens for a snapshot.</summary>
+    public CaptureMode SnapshotCaptureMode { get; set; } = CaptureMode.Display;
+
+    /// <summary>Capture the system cursor into the snapshot.</summary>
+    public bool SnapshotCaptureCursor { get; set; } = true;
+
+    /// <summary>
+    /// Where snapshots are written. Empty means the default (Pictures\Snapture),
+    /// resolved at runtime.
+    /// </summary>
+    public string SnapshotLibraryFolder { get; set; } = string.Empty;
+
     /// <summary>TCP port the Stream Deck control server listens on (localhost).</summary>
     public int ControlServerPort { get; set; } = 48910;
 

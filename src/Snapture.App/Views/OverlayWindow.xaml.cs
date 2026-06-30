@@ -20,8 +20,6 @@ namespace Snapture.App.Views;
 /// </summary>
 public partial class OverlayWindow : Window
 {
-    private sealed record FormatItem(string Label, OutputFormat Format) { public override string ToString() => Label; }
-
     private const int HandleTolerancePx = 10;
 
     private readonly List<Rectangle> _handles = new();
@@ -32,6 +30,7 @@ public partial class OverlayWindow : Window
     private bool _loaded;
     private bool _suppressModeEvents;
 
+    private CaptureKind _kind;
     private CaptureMode _mode;
     private bool _dragging;
     private bool _drawingNew;
@@ -80,21 +79,14 @@ public partial class OverlayWindow : Window
     private Point _toolbarDragOrigin;
     private double _toolbarStartLeft, _toolbarStartTop;
 
-    public OverlayWindow(CaptureMode mode, OutputFormat format)
+    public OverlayWindow(CaptureKind kind, CaptureMode mode)
     {
         InitializeComponent();
+        _kind = kind;
         _mode = mode;
         CreateHandles();
 
-        FormatCombo.ItemsSource = new[]
-        {
-            new FormatItem("MP4", OutputFormat.Mp4),
-            new FormatItem("WebP", OutputFormat.WebP),
-            new FormatItem("GIF", OutputFormat.Gif),
-        };
-        FormatCombo.SelectedItem = ((IEnumerable<FormatItem>)FormatCombo.ItemsSource).First(f => f.Format == format);
-
-        WireToolbar(mode);
+        WireToolbar(kind, mode);
 
         Loaded += OnLoaded;
         SizeChanged += (_, _) => { UpdateVisuals(); PositionToolbar(); UpdateDisplayMap(); };
@@ -110,28 +102,34 @@ public partial class OverlayWindow : Window
 
     public nint ToolbarHandle { get; set; }
 
+    /// <summary>Whether the user is set to take a video recording or a still snapshot.</summary>
+    public CaptureKind Kind => _kind;
+
+    /// <summary>The capture mode currently selected in the toolbar.</summary>
+    public CaptureMode Mode => _mode;
+
     public event Action<CaptureTarget?>? TargetChanged;
-    public event Action<OutputFormat>? FormatChanged;
     public event Action? Confirmed;
     public event Action? Cancelled;
 
-    private void WireToolbar(CaptureMode mode)
+    /// <summary>Raised when the user changes the capture mode mid-pick (Display/Window/Custom).</summary>
+    public event Action? CaptureModeChanged;
+
+    private void WireToolbar(CaptureKind kind, CaptureMode mode)
     {
         _suppressModeEvents = true;
+        KindSnapshot.IsChecked = kind == CaptureKind.Image;
+        KindVideo.IsChecked = kind == CaptureKind.Video;
         ModeDisplay.IsChecked = mode == CaptureMode.Display;
         ModeWindow.IsChecked = mode == CaptureMode.Window;
         ModeCustom.IsChecked = mode == CaptureMode.Custom;
         _suppressModeEvents = false;
 
+        KindSnapshot.Checked += (_, _) => OnKindPicked(CaptureKind.Image);
+        KindVideo.Checked += (_, _) => OnKindPicked(CaptureKind.Video);
         ModeDisplay.Checked += (_, _) => OnModePicked(CaptureMode.Display);
         ModeWindow.Checked += (_, _) => OnModePicked(CaptureMode.Window);
         ModeCustom.Checked += (_, _) => OnModePicked(CaptureMode.Custom);
-
-        FormatCombo.SelectionChanged += (_, _) =>
-        {
-            if (FormatCombo.SelectedItem is FormatItem f)
-                FormatChanged?.Invoke(f.Format);
-        };
 
         RecordButton.Click += (_, _) => { if (GetCurrentTarget() is not null) Confirmed?.Invoke(); };
         CancelButton.Click += (_, _) => Cancelled?.Invoke();
@@ -142,7 +140,20 @@ public partial class OverlayWindow : Window
         Toolbar.MouseLeftButtonDown += OnToolbarMouseDown;
         Toolbar.MouseMove += OnToolbarMouseMove;
         Toolbar.MouseLeftButtonUp += OnToolbarMouseUp;
+
+        UpdateActionButton();
     }
+
+    private void OnKindPicked(CaptureKind kind)
+    {
+        if (_suppressModeEvents) return;
+        _kind = kind;            // capture mode stays sticky across a kind switch
+        UpdateActionButton();
+        RaiseTarget();
+    }
+
+    private void UpdateActionButton() =>
+        RecordButton.Content = _kind == CaptureKind.Image ? "📷 Snapshot" : "● Record";
 
     private void OnToolbarMouseDown(object sender, MouseButtonEventArgs e)
     {
@@ -181,6 +192,7 @@ public partial class OverlayWindow : Window
         UpdateVisuals();
         UpdateDisplayMap();
         RaiseTarget();
+        CaptureModeChanged?.Invoke(); // a mid-pick change overrides the saved default
     }
 
     public CaptureTarget? GetCurrentTarget()
