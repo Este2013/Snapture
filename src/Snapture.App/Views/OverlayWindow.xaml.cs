@@ -27,6 +27,7 @@ public partial class OverlayWindow : Window
 
     private int _vx, _vy, _vw, _vh;     // virtual desktop, physical px
     private double _scale = 1.0;         // physical px per DIP
+    private CaptureRegion _homeMonitor;  // monitor under the cursor at open (chrome anchor)
     private bool _loaded;
     private bool _suppressModeEvents;
 
@@ -294,6 +295,10 @@ public partial class OverlayWindow : Window
                 UpdateHoverTarget(_cursorPx, _cursorPy);
         }
 
+        // Anchor the toolbar/picker on the monitor the cursor is on right now.
+        // Captured once: the chrome doesn't chase the cursor across monitors.
+        _homeMonitor = ScreenInfo.MonitorAt(_cursorPx, _cursorPy).Bounds;
+
         _loaded = true;
 
         // Dim layer behind us. ShowActivated=false keeps our keyboard focus; we
@@ -345,7 +350,7 @@ public partial class OverlayWindow : Window
 
         _displayMap.Visibility = Visibility.Visible;
         _displayMap.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var (px, py, pw, ph) = PrimaryMonitorDip();
+        var (px, py, pw, ph) = ActiveMonitorDip();
         Canvas.SetLeft(_displayMap, px + (pw - _displayMap.DesiredSize.Width) / 2);
         Canvas.SetTop(_displayMap, py + (ph - _displayMap.DesiredSize.Height) / 2);
         _displayMap.UpdateMouse(_cursorPx, _cursorPy);
@@ -691,12 +696,20 @@ public partial class OverlayWindow : Window
         return (PhysXToDip(p.Bounds.X), PhysYToDip(p.Bounds.Y), p.Bounds.Width / _scale, p.Bounds.Height / _scale);
     }
 
+    /// <summary>DIP rect of the monitor the chrome is anchored to (where the cursor opened).</summary>
+    private (double X, double Y, double W, double H) ActiveMonitorDip()
+    {
+        if (_homeMonitor.IsEmpty) return PrimaryMonitorDip();
+        return (PhysXToDip(_homeMonitor.X), PhysYToDip(_homeMonitor.Y),
+                _homeMonitor.Width / _scale, _homeMonitor.Height / _scale);
+    }
+
     private void CenterHint()
     {
         if (!_loaded) return;
         HintBadge.Visibility = Visibility.Visible;
         HintBadge.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var (px, py, pw, ph) = PrimaryMonitorDip();
+        var (px, py, pw, ph) = ActiveMonitorDip();
         Canvas.SetLeft(HintBadge, px + (pw - HintBadge.DesiredSize.Width) / 2);
         Canvas.SetTop(HintBadge, py + ph * 0.45);
     }
@@ -706,7 +719,7 @@ public partial class OverlayWindow : Window
         if (!_loaded || _toolbarMoved) return;
         Toolbar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var width = Toolbar.ActualWidth > 0 ? Toolbar.ActualWidth : Toolbar.DesiredSize.Width;
-        var (px, py, pw, _) = PrimaryMonitorDip();
+        var (px, py, pw, _) = ActiveMonitorDip();
         Canvas.SetLeft(Toolbar, px + (pw - width) / 2);
         Canvas.SetTop(Toolbar, py + 14);
     }
