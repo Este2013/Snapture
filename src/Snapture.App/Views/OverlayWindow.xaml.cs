@@ -43,10 +43,9 @@ public partial class OverlayWindow : Window
     private nint _hoverWindow;
     private string? _hoverLabel;
 
-    // Reused dim geometry — mutating .Rect each frame avoids per-move allocation.
-    private readonly RectangleGeometry _outerGeo = new();
-    private readonly RectangleGeometry _holeGeo = new();
-    private readonly GeometryGroup _dimGroup;
+    // The dim is a separate GPU-composited window behind this one.
+    private DimWindow? _dim;
+    private const byte DimAlpha = 0x8C; // matches the previous #8C000000 shade
 
     // Visual updates are coalesced to one per rendered frame: mouse-move events
     // fire far faster than this full-desktop layered window can repaint, so doing
@@ -64,12 +63,6 @@ public partial class OverlayWindow : Window
     {
         InitializeComponent();
         _mode = mode;
-
-        _dimGroup = new GeometryGroup { FillRule = FillRule.EvenOdd };
-        _dimGroup.Children.Add(_outerGeo);
-        _dimGroup.Children.Add(_holeGeo);
-        DimPath.Data = _dimGroup;
-
         CreateHandles();
 
         FormatCombo.ItemsSource = new[]
@@ -210,15 +203,29 @@ public partial class OverlayWindow : Window
 
         _loaded = true;
 
+        // Dim layer behind us. ShowActivated=false keeps our keyboard focus; we
+        // then drop it directly below this window so our chrome stays on top.
+        _dim = new DimWindow(_vx, _vy, _vw, _vh, DimAlpha);
+        _dim.Show();
+        NativeMethods.PlaceDirectlyBelow(_dim, this);
+        _dim.ClearHole();
+
         if (!_renderHooked)
         {
             CompositionTarget.Rendering += OnRendering;
-            Closed += (_, _) => CompositionTarget.Rendering -= OnRendering;
+            Closed += OnClosed;
             _renderHooked = true;
         }
 
         UpdateVisualsCore();
         PositionToolbar();
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        CompositionTarget.Rendering -= OnRendering;
+        var dim = _dim; _dim = null;
+        try { dim?.Close(); } catch { }
     }
 
     /// <summary>Flush a pending visual update at most once per rendered frame.</summary>
@@ -390,11 +397,10 @@ public partial class OverlayWindow : Window
     private void UpdateVisualsCore()
     {
         var region = CurrentRegionPhysical();
-        _outerGeo.Rect = new Rect(0, 0, RootCanvas.ActualWidth, RootCanvas.ActualHeight);
 
         if (region.IsEmpty)
         {
-            _holeGeo.Rect = Rect.Empty;
+            _dim?.ClearHole();
             SelectionBorder.Visibility = Visibility.Collapsed;
             InfoBadge.Visibility = Visibility.Collapsed;
             HideHandles();
@@ -404,11 +410,11 @@ public partial class OverlayWindow : Window
 
         HintBadge.Visibility = Visibility.Collapsed;
 
+        _dim?.SetHole(region.X, region.Y, region.Width, region.Height);
+
         var holeRect = new Rect(
             PhysXToDip(region.X), PhysYToDip(region.Y),
             region.Width / _scale, region.Height / _scale);
-
-        _holeGeo.Rect = holeRect;
 
         SelectionBorder.Visibility = Visibility.Visible;
         Canvas.SetLeft(SelectionBorder, holeRect.X);
