@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "+B7cFobamB8=",
+  "dgSpecHash": "CUoiEDlFfas=",
   "success": true,
-  "projectFilePath": "C:\\PROJECTS\\TOOLS\\src\\Snapture.App\\Snapture.App.csproj",
+  "projectFilePath": "C:\\PROJECTS\\Snapture\\src\\Snapture.App\\Snapture.App.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\makrofon\\.nuget\\packages\\hardcodet.notifyicon.wpf\\2.0.1\\hardcodet.notifyicon.wpf.2.0.1.nupkg.sha512",
     "C:\\Users\\makrofon\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.16\\microsoft.netcore.app.ref.9.0.16.nupkg.sha512",

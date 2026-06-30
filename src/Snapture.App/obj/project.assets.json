@@ -71,11 +71,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\PROJECTS\\TOOLS\\src\\Snapture.App\\Snapture.App.csproj",
+      "projectUniqueName": "C:\\PROJECTS\\Snapture\\src\\Snapture.App\\Snapture.App.csproj",
       "projectName": "Snapture",
-      "projectPath": "C:\\PROJECTS\\TOOLS\\src\\Snapture.App\\Snapture.App.csproj",
+      "projectPath": "C:\\PROJECTS\\Snapture\\src\\Snapture.App\\Snapture.App.csproj",
       "packagesPath": "C:\\Users\\makrofon\\.nuget\\packages\\",
-      "outputPath": "C:\\PROJECTS\\TOOLS\\src\\Snapture.App\\obj\\",
+      "outputPath": "C:\\PROJECTS\\Snapture\\src\\Snapture.App\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -96,8 +96,8 @@
         "net9.0-windows7.0": {
           "targetAlias": "net9.0-windows",
           "projectReferences": {
-            "C:\\PROJECTS\\TOOLS\\src\\Snapture.Core\\Snapture.Core.csproj": {
-              "projectPath": "C:\\PROJECTS\\TOOLS\\src\\Snapture.Core\\Snapture.Core.csproj"
+            "C:\\PROJECTS\\Snapture\\src\\Snapture.Core\\Snapture.Core.csproj": {
+              "projectPath": "C:\\PROJECTS\\Snapture\\src\\Snapture.Core\\Snapture.Core.csproj"
             }
           }
         }

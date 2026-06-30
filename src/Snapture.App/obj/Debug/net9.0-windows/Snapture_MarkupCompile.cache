@@ -4,16 +4,16 @@
 winexe
 C#
 .cs
-C:\PROJECTS\TOOLS\src\Snapture.App\obj\Debug\net9.0-windows\
+C:\PROJECTS\Snapture\src\Snapture.App\obj\Debug\net9.0-windows\
 Snapture.App
 none
 false
 TRACE;DEBUG;NET;NET9_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
-C:\PROJECTS\TOOLS\src\Snapture.App\App.xaml
+C:\PROJECTS\Snapture\src\Snapture.App\App.xaml
 4-475386039
 
 13-603451556
-212536068839
+212-353492178
 MainWindow.xaml;Views\OverlayWindow.xaml;Views\RecordingBarWindow.xaml;Views\Theme.xaml;
 
 True
