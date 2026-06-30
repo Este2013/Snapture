@@ -152,8 +152,55 @@ public partial class OverlayWindow : Window
         RaiseTarget();
     }
 
-    private void UpdateActionButton() =>
-        RecordButton.Content = _kind == CaptureKind.Image ? "◍ Snapshot" : "● Record";
+    private void UpdateActionButton()
+    {
+        if (_kind == CaptureKind.Image)
+        {
+            RecordButton.Content = BuildScanCameraIcon();
+            RecordButton.ToolTip = "Take snapshot (Enter)";
+        }
+        else
+        {
+            RecordButton.Content = BuildRecordIcon();
+            RecordButton.ToolTip = "Record (Enter)";
+        }
+    }
+
+    // Fluent "Record" (regular): a ring with a filled centre dot.
+    private static UIElement BuildRecordIcon()
+    {
+        var grid = new System.Windows.Controls.Grid { Width = 16, Height = 16 };
+        grid.Children.Add(new Ellipse { Stroke = Brushes.White, StrokeThickness = 1.6 });
+        grid.Children.Add(new Ellipse
+        {
+            Width = 7, Height = 7, Fill = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        return grid;
+    }
+
+    // Fluent "Scan Camera" (regular): corner brackets framing a small camera.
+    private const string ScanCameraGeometry =
+        "M8 4 H6 A2 2 0 0 0 4 6 V8 M16 4 H18 A2 2 0 0 1 20 6 V8 " +
+        "M20 16 V18 A2 2 0 0 1 18 20 H16 M8 20 H6 A2 2 0 0 1 4 18 V16 " +
+        "M8 16.5 V12 A1.5 1.5 0 0 1 9.5 10.5 H10.2 L11 9.3 H13 L13.8 10.5 H14.5 " +
+        "A1.5 1.5 0 0 1 16 12 V16.5 A1.5 1.5 0 0 1 14.5 18 H9.5 A1.5 1.5 0 0 1 8 16.5 Z " +
+        "M10.3 14 A1.7 1.7 0 1 0 13.7 14 A1.7 1.7 0 1 0 10.3 14 Z";
+
+    private static UIElement BuildScanCameraIcon()
+    {
+        var path = new System.Windows.Shapes.Path
+        {
+            Data = Geometry.Parse(ScanCameraGeometry),
+            Stroke = Brushes.White,
+            StrokeThickness = 1.6,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            StrokeLineJoin = PenLineJoin.Round,
+        };
+        return new System.Windows.Controls.Viewbox { Width = 18, Height = 18, Child = path };
+    }
 
     private void OnToolbarMouseDown(object sender, MouseButtonEventArgs e)
     {
@@ -268,6 +315,7 @@ public partial class OverlayWindow : Window
         UpdateVisualsCore();
         PositionToolbar();
         UpdateDisplayMap();
+        RaiseTarget(); // set the action button's initial enabled state
         _snapTimer.Start();
     }
 
