@@ -8,13 +8,13 @@ there to offer in-app updates.
 
 ```
 /.nojekyll
-/snapture/releases.json
-/snapture/Snapture-Setup-<version>.exe
+/releases.json
+/Snapture-Setup-<version>.exe
 ```
 
-Served at `https://este2013.github.io/TOOLS/snapture/…`, which is what
-`UpdateService.ManifestUrl` points to. If the Pages URL changes, update that
-constant and the `-PagesBaseUrl` default in `release.ps1`.
+Served at `https://este2013.github.io/Snapture/…`, which is what
+`UpdateService.ManifestUrl` points to. If the Pages URL changes (e.g. the repo is
+renamed), update that constant and the `-PagesBaseUrl` default in `release.ps1`.
 
 ### `releases.json`
 
@@ -26,7 +26,7 @@ constant and the `-PagesBaseUrl` default in `release.ps1`.
       "version": "1.1.0",
       "date": "2026-07-01",
       "notes": "- Snapshot mode\n- In-app update checks",
-      "installerUrl": "https://este2013.github.io/TOOLS/snapture/Snapture-Setup-1.1.0.exe",
+      "installerUrl": "https://este2013.github.io/Snapture/Snapture-Setup-1.1.0.exe",
       "sha256": "<lowercase hex>"
     }
   ]

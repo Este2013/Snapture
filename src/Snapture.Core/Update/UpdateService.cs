@@ -37,7 +37,7 @@ public sealed class UpdateManifest
 public sealed class UpdateService
 {
     /// <summary>Where the release manifest lives. Adjust if the Pages path changes.</summary>
-    public const string ManifestUrl = "https://este2013.github.io/TOOLS/snapture/releases.json";
+    public const string ManifestUrl = "https://este2013.github.io/Snapture/releases.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

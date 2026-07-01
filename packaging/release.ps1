@@ -17,7 +17,7 @@ param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
     # Must match UpdateService.ManifestUrl's directory.
-    [string]$PagesBaseUrl = "https://este2013.github.io/TOOLS/snapture"
+    [string]$PagesBaseUrl = "https://este2013.github.io/Snapture"
 )
 
 $ErrorActionPreference = "Stop"
@@ -76,13 +76,16 @@ if (-not (Test-Path $worktree)) {
     }
 }
 
-# 4) Copy the installer and update the manifest.
-$snapDir = Join-Path $worktree "snapture"
-New-Item -ItemType Directory -Force -Path $snapDir | Out-Null
+# 4) Copy the installer and update the manifest (at the Pages root).
+# Clean up the old snapture/ subfolder layout if a previous run created it.
+if (Test-Path (Join-Path $worktree "snapture")) {
+    git -C $worktree rm -r --quiet --ignore-unmatch snapture | Out-Null
+    Remove-Item -Recurse -Force (Join-Path $worktree "snapture") -ErrorAction SilentlyContinue
+}
 Set-Content -Path (Join-Path $worktree ".nojekyll") -Value "" -NoNewline
-Copy-Item $installer $snapDir -Force
+Copy-Item $installer $worktree -Force
 
-$manifestPath = Join-Path $snapDir "releases.json"
+$manifestPath = Join-Path $worktree "releases.json"
 if (Test-Path $manifestPath) {
     $manifest = Get-Content -Raw $manifestPath | ConvertFrom-Json
 } else {
@@ -108,7 +111,7 @@ git -C $worktree commit -m "release: Snapture $Version" | Out-Null
 Write-Host ""
 Write-Host "Done. Staged on gh-pages:" -ForegroundColor Green
 Write-Host "  $manifestPath"
-Write-Host "  $(Join-Path $snapDir "Snapture-Setup-$Version.exe")"
+Write-Host "  $(Join-Path $worktree "Snapture-Setup-$Version.exe")"
 Write-Host ""
 Write-Host "Next:" -ForegroundColor Yellow
 Write-Host "  git push origin gh-pages"
