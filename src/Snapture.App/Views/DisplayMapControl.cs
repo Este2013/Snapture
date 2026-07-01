@@ -30,7 +30,7 @@ internal sealed class DisplayMapControl : Border
     private readonly Canvas _canvas = new();
     private readonly List<(MonitorInfo Mon, Border Tile)> _tiles = new();
     private readonly Ellipse _badge;
-    private Border? _activeTile;
+    private Border? _hoveredTile;
 
     private int _minX, _minY;
     private double _scale = 1;
@@ -74,11 +74,14 @@ internal sealed class DisplayMapControl : Border
 
     public event Action<MonitorInfo>? DisplayClicked;
 
+    /// <summary>Raised when the pointer enters/leaves a display tile (null on leave).</summary>
+    public event Action<MonitorInfo?>? DisplayHovered;
+
     public void Build(IReadOnlyList<MonitorInfo> monitors)
     {
         _canvas.Children.Clear();
         _tiles.Clear();
-        _activeTile = null;
+        _hoveredTile = null;
         if (monitors.Count == 0) return;
 
         _minX = monitors.Min(m => m.Bounds.X);
@@ -101,25 +104,14 @@ internal sealed class DisplayMapControl : Border
         _canvas.Children.Add(_badge);
     }
 
-    /// <summary>Move the live cursor dot and outline the monitor under it (physical px).</summary>
+    /// <summary>Position the live cursor dot in the tile the physical cursor is over.</summary>
     public void UpdateMouse(int physX, int physY)
     {
-        Border? active = null;
-        foreach (var (mon, tile) in _tiles)
-        {
-            if (physX >= mon.Bounds.X && physX < mon.Bounds.Right &&
-                physY >= mon.Bounds.Y && physY < mon.Bounds.Bottom)
-                active = tile;
-        }
+        bool onAMonitor = _tiles.Any(t =>
+            physX >= t.Mon.Bounds.X && physX < t.Mon.Bounds.Right &&
+            physY >= t.Mon.Bounds.Y && physY < t.Mon.Bounds.Bottom);
 
-        if (!ReferenceEquals(active, _activeTile))
-        {
-            if (_activeTile is not null) _activeTile.BorderBrush = TileStroke;
-            _activeTile = active;
-            if (_activeTile is not null) _activeTile.BorderBrush = AccentStroke;
-        }
-
-        if (active is null)
+        if (!onAMonitor)
         {
             _badge.Visibility = Visibility.Collapsed;
             return;
@@ -172,8 +164,29 @@ internal sealed class DisplayMapControl : Border
         Canvas.SetLeft(tile, x);
         Canvas.SetTop(tile, y);
 
-        tile.MouseEnter += (_, _) => { if (!ReferenceEquals(tile, _activeTile)) tile.Background = TileFillHover; };
-        tile.MouseLeave += (_, _) => { if (!ReferenceEquals(tile, _activeTile)) tile.Background = TileFill; };
+        // Hovering a tile highlights it (accent border) and previews that display.
+        tile.MouseEnter += (_, _) =>
+        {
+            if (_hoveredTile is not null && !ReferenceEquals(_hoveredTile, tile))
+            {
+                _hoveredTile.BorderBrush = TileStroke;
+                _hoveredTile.Background = TileFill;
+            }
+            _hoveredTile = tile;
+            tile.BorderBrush = AccentStroke;
+            tile.Background = TileFillHover;
+            DisplayHovered?.Invoke(m);
+        };
+        tile.MouseLeave += (_, _) =>
+        {
+            if (ReferenceEquals(_hoveredTile, tile))
+            {
+                tile.BorderBrush = TileStroke;
+                tile.Background = TileFill;
+                _hoveredTile = null;
+                DisplayHovered?.Invoke(null);
+            }
+        };
         tile.MouseLeftButtonDown += (_, e) => { e.Handled = true; DisplayClicked?.Invoke(m); };
         return tile;
     }

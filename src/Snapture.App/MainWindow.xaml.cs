@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using Snapture.App.Views;
 using Snapture.Core.Encoding;
 using Snapture.Core.Models;
@@ -212,7 +213,13 @@ public partial class MainWindow : Window
         bool snapshot = TabSnapshot.IsChecked == true;
         SnapshotPanel.Visibility = snapshot ? Visibility.Visible : Visibility.Collapsed;
         VideoPanel.Visibility = snapshot ? Visibility.Collapsed : Visibility.Visible;
-        StartButton.Content = snapshot ? "📷 Take snapshot" : "● Start recording";
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var icon = snapshot ? CaptureIcons.ScanCamera() : CaptureIcons.Record();
+        ((FrameworkElement)icon).Margin = new Thickness(0, 0, 8, 0);
+        panel.Children.Add(icon);
+        panel.Children.Add(new TextBlock { Text = snapshot ? "Take snapshot" : "Start recording", VerticalAlignment = VerticalAlignment.Center });
+        StartButton.Content = panel;
     }
 
     private ImageFormat SnapshotFormat() =>

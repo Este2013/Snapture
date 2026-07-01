@@ -50,6 +50,7 @@ public partial class OverlayWindow : Window
 
     // Display-mode picker: a Windows-Settings-style map of all monitors.
     private DisplayMapControl? _displayMap;
+    private MonitorInfo? _mapHoveredMonitor; // display tile the pointer is over, if any
 
     // Logical-area snap (Custom mode, before a real selection exists): hovering
     // previews the tightest UI element under the cursor; the wheel walks up to its
@@ -157,55 +158,14 @@ public partial class OverlayWindow : Window
     {
         if (_kind == CaptureKind.Image)
         {
-            RecordButton.Content = BuildScanCameraIcon();
+            RecordButton.Content = CaptureIcons.ScanCamera();
             RecordButton.ToolTip = "Take snapshot (Enter)";
         }
         else
         {
-            RecordButton.Content = BuildRecordIcon();
+            RecordButton.Content = CaptureIcons.Record();
             RecordButton.ToolTip = "Record (Enter)";
         }
-    }
-
-    // Fluent "Record" (regular): a ring with a filled centre dot.
-    private static UIElement BuildRecordIcon()
-    {
-        var grid = new System.Windows.Controls.Grid { Width = 16, Height = 16 };
-        grid.Children.Add(new Ellipse { Stroke = Brushes.White, StrokeThickness = 1.6 });
-        grid.Children.Add(new Ellipse
-        {
-            Width = 7, Height = 7, Fill = Brushes.White,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        });
-        return grid;
-    }
-
-    // "Scan" style: four corner brackets framing a solid circle. Drawn at the
-    // same 16px scale and 1.6 stroke as the Record icon so the weights match.
-    private const string ScanFrameGeometry =
-        "M6 2 H4 A2 2 0 0 0 2 4 V6 M10 2 H12 A2 2 0 0 1 14 4 V6 " +
-        "M14 10 V12 A2 2 0 0 1 12 14 H10 M6 14 H4 A2 2 0 0 1 2 12 V10";
-
-    private static UIElement BuildScanCameraIcon()
-    {
-        var grid = new System.Windows.Controls.Grid { Width = 16, Height = 16 };
-        grid.Children.Add(new System.Windows.Shapes.Path
-        {
-            Data = Geometry.Parse(ScanFrameGeometry),
-            Stroke = Brushes.White,
-            StrokeThickness = 1.6,
-            StrokeStartLineCap = PenLineCap.Round,
-            StrokeEndLineCap = PenLineCap.Round,
-            StrokeLineJoin = PenLineJoin.Round,
-        });
-        grid.Children.Add(new Ellipse
-        {
-            Width = 6, Height = 6, Fill = Brushes.White,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        });
-        return grid;
     }
 
     private void OnToolbarMouseDown(object sender, MouseButtonEventArgs e)
@@ -319,6 +279,7 @@ public partial class OverlayWindow : Window
         // at the bottom of the z-order so the toolbar and selection chrome stay on top.
         _displayMap = new DisplayMapControl { Visibility = Visibility.Collapsed };
         _displayMap.DisplayClicked += OnDisplayPicked;
+        _displayMap.DisplayHovered += OnDisplayHovered;
         RootCanvas.Children.Insert(0, _displayMap);
         _displayMap.Build(ScreenInfo.GetMonitors());
 
@@ -335,6 +296,24 @@ public partial class OverlayWindow : Window
         _hoverWindow = nint.Zero;
         _hoverLabel = $"{m.Bounds.Width}x{m.Bounds.Height}" + (m.IsPrimary ? " (primary)" : "");
         Confirmed?.Invoke();
+    }
+
+    /// <summary>Hovering a display tile previews that monitor (its real screen gets the selection).</summary>
+    private void OnDisplayHovered(MonitorInfo? m)
+    {
+        _mapHoveredMonitor = m;
+        if (m is not null)
+        {
+            _hoverRegion = m.Bounds;
+            _hoverWindow = nint.Zero;
+            _hoverLabel = $"{m.Bounds.Width}x{m.Bounds.Height}" + (m.IsPrimary ? " (primary)" : "");
+        }
+        else
+        {
+            UpdateHoverTarget(_cursorPx, _cursorPy);
+        }
+        UpdateVisuals();
+        RaiseTarget();
     }
 
     /// <summary>Toggle, position and refresh the display map for the current mode.</summary>
@@ -487,7 +466,18 @@ public partial class OverlayWindow : Window
 
         if (_mode != CaptureMode.Custom)
         {
-            UpdateHoverTarget(px, py);
+            // A hovered display tile takes priority over the monitor the physical
+            // cursor happens to be on (which is where the map itself lives).
+            if (_mode == CaptureMode.Display && _mapHoveredMonitor is { } hm)
+            {
+                _hoverRegion = hm.Bounds;
+                _hoverWindow = nint.Zero;
+                _hoverLabel = $"{hm.Bounds.Width}x{hm.Bounds.Height}" + (hm.IsPrimary ? " (primary)" : "");
+            }
+            else
+            {
+                UpdateHoverTarget(px, py);
+            }
             if (_mode == CaptureMode.Display) _displayMap?.UpdateMouse(px, py);
             UpdateVisuals();
             RaiseTarget();

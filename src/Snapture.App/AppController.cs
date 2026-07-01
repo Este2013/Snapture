@@ -29,6 +29,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private readonly RecordingController _controller;
     private readonly SnapshotService _snapshot;
     private ControlServer? _server;
+    private HotkeyService? _hotkeys;
 
     private TaskbarIcon? _tray;
     private MainWindow? _mainWindow;
@@ -71,6 +72,30 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         BuildTray();
         _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null));
         StartControlServerIfEnabled();
+        RegisterHotkeys();
+    }
+
+    private void RegisterHotkeys()
+    {
+        _hotkeys = new HotkeyService();
+        _hotkeys.Initialize();
+        _hotkeys.Register(HotkeyService.VK_F6, OnSnapshotHotkey); // F6 → snapshot
+        _hotkeys.Register(HotkeyService.VK_F7, OnRecordHotkey);   // F7 → record / stop
+    }
+
+    private void OnSnapshotHotkey()
+    {
+        if (_controller.State == RecordingState.Idle)
+            BeginSelection(CaptureKind.Image, null);
+    }
+
+    private void OnRecordHotkey()
+    {
+        switch (_controller.State)
+        {
+            case RecordingState.Recording: _ = StopAsync(); break;
+            case RecordingState.Idle: BeginSelection(CaptureKind.Video, null); break;
+        }
     }
 
     // ---- tray -------------------------------------------------------------
@@ -553,6 +578,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     {
         try { _ = _controller.AbortAsync(); } catch { }
         try { if (_server is not null) _ = _server.DisposeAsync(); } catch { }
+        try { _hotkeys?.Dispose(); } catch { }
         if (_mainWindow is not null) _mainWindow.AllowClose = true;
         CloseOverlay();
         CloseRecordingBar();
