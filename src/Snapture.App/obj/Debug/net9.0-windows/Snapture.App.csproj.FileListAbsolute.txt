@@ -61,3 +61,5 @@ C:\PROJECTS\Snapture\src\Snapture.App\obj\Debug\net9.0-windows\refint\Snapture.d
 C:\PROJECTS\Snapture\src\Snapture.App\obj\Debug\net9.0-windows\Snapture.pdb
 C:\PROJECTS\Snapture\src\Snapture.App\obj\Debug\net9.0-windows\Snapture.App.genruntimeconfig.cache
 C:\PROJECTS\Snapture\src\Snapture.App\obj\Debug\net9.0-windows\ref\Snapture.dll
+C:\PROJECTS\Snapture\src\Snapture.App\obj\Debug\net9.0-windows\Views\ReleaseNotesWindow.baml
+C:\PROJECTS\Snapture\src\Snapture.App\obj\Debug\net9.0-windows\Views\ReleaseNotesWindow.g.cs
