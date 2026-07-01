@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v9.0": {
-      "Snapture/1.0.1": {
+      "Snapture/1.1.0": {
         "dependencies": {
           "Hardcodet.NotifyIcon.Wpf": "2.0.1",
           "Snapture.Core": "1.0.0"
@@ -34,7 +34,7 @@
     }
   },
   "libraries": {
-    "Snapture/1.0.1": {
+    "Snapture/1.1.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
