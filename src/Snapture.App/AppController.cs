@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Hardcodet.Wpf.TaskbarNotification;
 using Snapture.App.Interop;
@@ -86,7 +87,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     public void Startup()
     {
         BuildTray();
-        _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown);
+        _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
+            () => _server?.ClientCount > 0, PingPlugin);
         StartControlServerIfEnabled();
         RegisterHotkeys();
     }
@@ -168,7 +170,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
     private void ShowSettings()
     {
-        _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown);
+        _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
+            () => _server?.ClientCount > 0, PingPlugin);
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
@@ -381,8 +384,12 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         {
             Log = msg => Debug.WriteLine($"[ControlServer] {msg}"),
         };
+        _server.ClientsChanged += () => _dispatcher.BeginInvoke(() => _mainWindow?.RefreshPluginStatus());
         _server.Start();
     }
+
+    /// <summary>Ping connected plugin clients (they flash a message on their keys).</summary>
+    private void PingPlugin() => _server?.Broadcast(new ControlEvent { Event = "ping" });
 
     public Task<ControlResponse> HandleAsync(ControlCommand command, CancellationToken cancellationToken)
         => _dispatcher.InvokeAsync(() => Dispatch(command)).Task;
@@ -422,6 +429,10 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
             case "getwindows":
                 return ControlResponse.Success(command.Id, state, new { windows = WindowList() });
+
+            case "identifydisplays":
+                IdentifyDisplays();
+                return ControlResponse.Success(command.Id, state);
 
             case "openlibrary":
                 OpenInExplorer(string.Equals(command.GetString("kind"), "image", StringComparison.OrdinalIgnoreCase)
@@ -603,8 +614,34 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         };
         if (path is null || !File.Exists(path))
             return ControlResponse.Failure(command.Id, "No matching capture saved this session.", state);
-        Reveal(path);
+
+        if (string.Equals(command.GetString("action"), "open", StringComparison.OrdinalIgnoreCase))
+            OpenFileWithApp(path);
+        else
+            Reveal(path);
         return ControlResponse.Success(command.Id, state, new { path });
+    }
+
+    /// <summary>Open a saved capture in an app: images in the Snipping Tool, videos in the default player.</summary>
+    private static void OpenFileWithApp(string path)
+    {
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        bool isImage = ext is ".png" or ".jpg" or ".jpeg" or ".webp" or ".bmp" or ".gif";
+        try
+        {
+            if (isImage)
+            {
+                // Win11 Snipping Tool ships as the "SnippingTool.exe" app alias; if it
+                // can't open the file, fall back to the default image handler.
+                try { Process.Start(new ProcessStartInfo("SnippingTool.exe", $"\"{path}\"") { UseShellExecute = true }); }
+                catch { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
+            }
+            else
+            {
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); // default video player
+            }
+        }
+        catch { /* nothing sensible to do */ }
     }
 
     private static string? MostRecent(string? a, string? b)
@@ -634,6 +671,66 @@ public sealed class AppController : IControlCommandHandler, IDisposable
                 return new CaptureTarget { Mode = CaptureMode.Window, Region = match.Bounds, WindowHandle = match.Handle, Label = match.Title };
         }
         return null;
+    }
+
+    private readonly List<Window> _identifyWindows = new();
+    private DispatcherTimer? _identifyTimer;
+
+    /// <summary>Flash a big number on each display for ~2s (dismiss on click too).</summary>
+    private void IdentifyDisplays()
+    {
+        CloseIdentify();
+        var monitors = ScreenInfo.GetMonitors();
+        for (int i = 0; i < monitors.Count; i++)
+        {
+            var m = monitors[i];
+            int side = Math.Max(160, (int)(Math.Min(m.Bounds.Width, m.Bounds.Height) * 0.32));
+            int x = m.Bounds.X + (m.Bounds.Width - side) / 2;
+            int y = m.Bounds.Y + (m.Bounds.Height - side) / 2;
+
+            var badge = new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(0xE6, 0x1F, 0x1F, 0x1F)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0x3B, 0x3B)),
+                BorderThickness = new Thickness(4),
+                CornerRadius = new CornerRadius(24),
+                Child = new Viewbox
+                {
+                    Stretch = Stretch.Uniform,
+                    Margin = new Thickness(24),
+                    Child = new TextBlock { Text = (i + 1).ToString(), Foreground = Brushes.White, FontWeight = FontWeights.Bold },
+                },
+            };
+            var w = new Window
+            {
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                AllowsTransparency = true,
+                Background = Brushes.Transparent,
+                ShowInTaskbar = false,
+                ShowActivated = false,
+                Topmost = true,
+                Content = badge,
+            };
+            w.MouseLeftButtonDown += (_, _) => { try { w.Close(); } catch { } };
+            w.Loaded += (_, _) =>
+            {
+                NativeMethods.SetWindowBoundsPhysical(w, x, y, side, side);
+                NativeMethods.MarkToolWindow(w, noActivate: true);
+            };
+            w.Show();
+            _identifyWindows.Add(w);
+        }
+
+        _identifyTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _identifyTimer.Tick += (_, _) => { _identifyTimer?.Stop(); _identifyTimer = null; CloseIdentify(); };
+        _identifyTimer.Start();
+    }
+
+    private void CloseIdentify()
+    {
+        foreach (var w in _identifyWindows) { try { w.Close(); } catch { } }
+        _identifyWindows.Clear();
     }
 
     private static object[] DisplayList()
@@ -727,6 +824,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         try { _ = _controller.AbortAsync(); } catch { }
         try { if (_server is not null) _ = _server.DisposeAsync(); } catch { }
         try { _hotkeys?.Dispose(); } catch { }
+        CloseIdentify();
         if (_mainWindow is not null) _mainWindow.AllowClose = true;
         CloseOverlay();
         CloseRecordingBar();

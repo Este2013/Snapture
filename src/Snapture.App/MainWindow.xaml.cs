@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Snapture.App.Views;
 using Snapture.Core.Encoding;
 using Snapture.Core.Models;
@@ -18,6 +19,9 @@ public partial class MainWindow : Window
     private readonly SettingsService _settings;
     private readonly Action<CaptureKind> _startCapture;
     private readonly Action _quit;
+    private readonly Func<bool> _isPluginConnected;
+    private readonly Action _pingPlugin;
+    private readonly System.Windows.Threading.DispatcherTimer _pluginPoll;
     private bool _loading;
     private string? _ffmpegPath;
 
@@ -28,17 +32,100 @@ public partial class MainWindow : Window
     /// <summary>When false, closing hides to tray instead of exiting.</summary>
     public bool AllowClose { get; set; }
 
-    public MainWindow(SettingsService settings, Action<CaptureKind> startCapture, Action quit)
+    public MainWindow(SettingsService settings, Action<CaptureKind> startCapture, Action quit,
+        Func<bool> isPluginConnected, Action pingPlugin)
     {
         _settings = settings;
         _startCapture = startCapture;
         _quit = quit;
+        _isPluginConnected = isPluginConnected;
+        _pingPlugin = pingPlugin;
         InitializeComponent();
 
         WireEvents();
         LoadFromSettings();
         RefreshFfmpegStatus();
         InitUpdates();
+
+        PluginGitHubButton.Click += (_, _) => OpenUrl("https://github.com/Este2013/Snapture_StreamDeck_Plugin");
+        PluginStatusButton.Click += (_, _) => OnPluginStatusClick();
+        _pluginPoll = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _pluginPoll.Tick += (_, _) => RefreshPluginStatus();
+        IsVisibleChanged += (_, _) => { if (IsVisible) { _pluginPoll.Start(); RefreshPluginStatus(); } else _pluginPoll.Stop(); };
+        RefreshPluginStatus();
+    }
+
+    private enum PluginState { Connected, Marketplace, StartSd }
+    private PluginState _pluginState = PluginState.StartSd;
+
+    private static bool StreamDeckRunning() => Process.GetProcessesByName("StreamDeck").Length > 0;
+
+    /// <summary>Recompute the Stream Deck / plugin connection indicator.</summary>
+    public void RefreshPluginStatus()
+    {
+        if (_isPluginConnected())
+        {
+            _pluginState = PluginState.Connected;
+            PluginStatusButton.Content = Dot(Colors.LimeGreen);
+            PluginStatusButton.ToolTip = "Connected to plugin — click to ping";
+        }
+        else if (StreamDeckRunning())
+        {
+            _pluginState = PluginState.Marketplace;
+            PluginStatusButton.Content = new System.Windows.Controls.TextBlock { Text = "" }; // Elgato Marketplace / shop glyph
+            PluginStatusButton.ToolTip = "Get the Snapture plugin on the Elgato Marketplace";
+        }
+        else
+        {
+            _pluginState = PluginState.StartSd;
+            PluginStatusButton.Content = Dot(Color.FromRgb(0xE2, 0x3B, 0x3B));
+            PluginStatusButton.ToolTip = "Start Elgato Stream Deck";
+        }
+    }
+
+    private static System.Windows.Shapes.Ellipse Dot(Color c) =>
+        new() { Width = 12, Height = 12, Fill = new SolidColorBrush(c) };
+
+    private void OnPluginStatusClick()
+    {
+        switch (_pluginState)
+        {
+            case PluginState.Connected:
+                _pingPlugin();
+                PluginStatusButton.ToolTip = "Ping sent!";
+                FlashBack(() => RefreshPluginStatus());
+                break;
+            case PluginState.Marketplace:
+                OpenUrl("https://marketplace.elgato.com/");
+                break;
+            case PluginState.StartSd:
+                StartStreamDeck();
+                break;
+        }
+    }
+
+    private void FlashBack(Action restore)
+    {
+        var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        t.Tick += (_, _) => { t.Stop(); restore(); };
+        t.Start();
+    }
+
+    private static void StartStreamDeck()
+    {
+        string[] candidates =
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Elgato", "StreamDeck", "StreamDeck.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Elgato", "StreamDeck", "StreamDeck.exe"),
+        };
+        foreach (var c in candidates)
+        {
+            if (File.Exists(c))
+            {
+                try { Process.Start(new ProcessStartInfo(c) { UseShellExecute = true }); } catch { }
+                return;
+            }
+        }
     }
 
     // ---- updates ----------------------------------------------------------

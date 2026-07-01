@@ -41,6 +41,12 @@ public sealed class ControlServer : IAsyncDisposable
 
     public bool IsRunning => _acceptLoop is { IsCompleted: false };
 
+    /// <summary>Number of currently connected clients (e.g. the Stream Deck plugin).</summary>
+    public int ClientCount => _clients.Count;
+
+    /// <summary>Raised (on a background thread) when a client connects or disconnects.</summary>
+    public event Action? ClientsChanged;
+
     /// <summary>Optional sink for diagnostics (connection/errors). Never throws.</summary>
     public Action<string>? Log { get; set; }
 
@@ -96,6 +102,7 @@ public sealed class ControlServer : IAsyncDisposable
         var conn = new ClientConnection(client);
         _clients[id] = conn;
         Log?.Invoke($"Client {id} connected ({_clients.Count} total)");
+        ClientsChanged?.Invoke();
 
         try
         {
@@ -145,6 +152,7 @@ public sealed class ControlServer : IAsyncDisposable
             _clients.TryRemove(id, out _);
             conn.Dispose();
             Log?.Invoke($"Client {id} disconnected ({_clients.Count} total)");
+            ClientsChanged?.Invoke();
         }
     }
 
