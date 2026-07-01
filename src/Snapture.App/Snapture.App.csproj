@@ -9,6 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>Snapture</AssemblyName>
+    <ApplicationIcon>Snapture.ico</ApplicationIcon>
     <Version>1.0.1</Version>
     <Company>Snapture</Company>
     <Product>Snapture</Product>

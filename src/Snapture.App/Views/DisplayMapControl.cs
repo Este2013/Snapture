@@ -70,6 +70,18 @@ internal sealed class DisplayMapControl : Border
         // Swallow clicks on the card itself so they don't fall through to the
         // overlay (which would confirm whatever monitor is under the cursor).
         MouseLeftButtonDown += (_, e) => e.Handled = true;
+
+        // Only drop the preview when the pointer leaves the whole card — not when
+        // it crosses the gaps between tiles (which otherwise flashes the selection
+        // back to the cursor's monitor and to the next tile).
+        MouseLeave += (_, _) =>
+        {
+            if (_hoveredTile is null) return;
+            _hoveredTile.BorderBrush = TileStroke;
+            _hoveredTile.Background = TileFill;
+            _hoveredTile = null;
+            DisplayHovered?.Invoke(null);
+        };
     }
 
     public event Action<MonitorInfo>? DisplayClicked;
@@ -177,16 +189,8 @@ internal sealed class DisplayMapControl : Border
             tile.Background = TileFillHover;
             DisplayHovered?.Invoke(m);
         };
-        tile.MouseLeave += (_, _) =>
-        {
-            if (ReferenceEquals(_hoveredTile, tile))
-            {
-                tile.BorderBrush = TileStroke;
-                tile.Background = TileFill;
-                _hoveredTile = null;
-                DisplayHovered?.Invoke(null);
-            }
-        };
+        // No per-tile MouseLeave: the last hovered tile stays selected while the
+        // pointer is over the gaps; the card-level MouseLeave clears it.
         tile.MouseLeftButtonDown += (_, e) => { e.Handled = true; DisplayClicked?.Invoke(m); };
         return tile;
     }

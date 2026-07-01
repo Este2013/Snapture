@@ -28,6 +28,7 @@ OutputBaseFilename=Snapture-Setup-{#MyAppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\src\Snapture.App\Snapture.ico
 ; Let the installer replace a running Snapture and restart it afterwards.
 CloseApplications=yes
 RestartApplications=yes
