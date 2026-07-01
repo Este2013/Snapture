@@ -68,7 +68,7 @@ namespace Snapture.App.Views {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/Snapture;V1.0.1.0;component/views/recordingbarwindow.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/Snapture;component/views/recordingbarwindow.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\Views\RecordingBarWindow.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

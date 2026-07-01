@@ -76,10 +76,6 @@
               "version": "[9.0.16, 9.0.16]"
             },
             {
-              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[9.0.16, 9.0.16]"
-            },
-            {
               "name": "Microsoft.NETCore.App.Host.win-x64",
               "version": "[9.0.16, 9.0.16]"
             },
@@ -88,15 +84,7 @@
               "version": "[9.0.16, 9.0.16]"
             },
             {
-              "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[9.0.16, 9.0.16]"
-            },
-            {
               "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[9.0.16, 9.0.16]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
               "version": "[9.0.16, 9.0.16]"
             }
           ],
@@ -110,15 +98,10 @@
           },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.204/PortableRuntimeIdentifierGraph.json"
         }
-      },
-      "runtimes": {
-        "win-x64": {
-          "#import": []
-        }
       }
     },
     "C:\\PROJECTS\\Snapture\\src\\Snapture.Core\\Snapture.Core.csproj": {
-      "version": "1.0.1",
+      "version": "1.0.0",
       "restore": {
         "projectUniqueName": "C:\\PROJECTS\\Snapture\\src\\Snapture.Core\\Snapture.Core.csproj",
         "projectName": "Snapture.Core",
@@ -179,23 +162,11 @@
               "version": "[9.0.16, 9.0.16]"
             },
             {
-              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[9.0.16, 9.0.16]"
-            },
-            {
               "name": "Microsoft.NETCore.App.Ref",
               "version": "[9.0.16, 9.0.16]"
             },
             {
-              "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[9.0.16, 9.0.16]"
-            },
-            {
               "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[9.0.16, 9.0.16]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
               "version": "[9.0.16, 9.0.16]"
             }
           ],
@@ -205,11 +176,6 @@
             }
           },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.204/PortableRuntimeIdentifierGraph.json"
-        }
-      },
-      "runtimes": {
-        "win-x64": {
-          "#import": []
         }
       }
     }
