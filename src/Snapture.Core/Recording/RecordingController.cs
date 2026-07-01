@@ -61,7 +61,7 @@ public sealed class RecordingController : IAsyncDisposable
     /// Begin recording the resolved target. Valid from Selecting (normal flow)
     /// or directly from Idle (e.g. an IPC "instant" trigger).
     /// </summary>
-    public void StartAsync(CaptureTarget target)
+    public void StartAsync(CaptureTarget target, OutputFormat? formatOverride = null)
     {
         lock (_gate)
         {
@@ -73,14 +73,15 @@ public sealed class RecordingController : IAsyncDisposable
                     "ffmpeg was not found. Bundle ffmpeg.exe next to the app or add it to PATH.");
 
             var s = _settings.Current;
+            var format = formatOverride ?? s.OutputFormat;
             var region = target.Region.ToEvenDimensions();
             if (region.IsEmpty)
                 throw new InvalidOperationException("Capture region is too small.");
 
             var source = _frameSourceFactory(target with { Region = region }, s.CaptureCursor);
             var encoder = new FfmpegEncoder(ffmpeg, source.Width, source.Height, s.FrameRate);
-            var outputPath = BuildOutputPath(s.OutputFormat);
-            encoder.Start(outputPath, s.OutputFormat, s.Quality);
+            var outputPath = BuildOutputPath(format);
+            encoder.Start(outputPath, format, s.Quality);
 
             _encoder = encoder;
             _frameCount = 0;
