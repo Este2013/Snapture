@@ -4,7 +4,8 @@
         Title="Snapture"
         Width="540" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="CanMinimize"
+        WindowStyle="None" ResizeMode="NoResize"
+        Background="#FF1F1F1F"
         UseLayoutRounding="True"
         FontFamily="Segoe UI Variable Text, Segoe UI">
     <Window.Resources>
@@ -24,13 +25,36 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,18">
-            <Ellipse Width="22" Height="22" Stroke="{StaticResource RecordAccentBrush}"
-                     StrokeThickness="3" VerticalAlignment="Center" />
-            <TextBlock Text="Snapture" FontSize="22" FontWeight="SemiBold"
-                       Margin="12,0,0,0" VerticalAlignment="Center" />
-        </StackPanel>
+        <!-- Header (also the drag surface for this undecorated window) -->
+        <Grid x:Name="HeaderBar" Grid.Row="0" Margin="0,0,0,18" Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <Ellipse Width="22" Height="22" Stroke="{StaticResource RecordAccentBrush}"
+                         StrokeThickness="3" VerticalAlignment="Center" />
+                <TextBlock Text="Snapture" FontSize="22" FontWeight="SemiBold"
+                           Margin="12,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock x:Name="VersionText" VerticalAlignment="Center" Margin="0,0,6,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <Button x:Name="ReleaseNotesButton" Style="{StaticResource IconButton}"
+                        Content="&#xE8A5;" ToolTip="View release notes" />
+                <Button x:Name="CheckUpdatesButton" Style="{StaticResource IconButton}"
+                        Content="&#xE72C;" ToolTip="Check for updates" />
+                <Button x:Name="UpdateBellButton" Style="{StaticResource IconButton}"
+                        Content="&#xE7ED;" Visibility="Collapsed"
+                        Foreground="{StaticResource RecordAccentBrush}" FontWeight="Bold" />
+                <Border Width="1" Height="20" Margin="6,0" VerticalAlignment="Center"
+                        Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                <Button x:Name="CloseXButton" Style="{StaticResource IconButton}"
+                        Content="&#xE8BB;" ToolTip="Close" />
+            </StackPanel>
+        </Grid>
 
         <!-- Mode tabs -->
         <Border Grid.Row="1" Style="{StaticResource SegmentedContainer}"
