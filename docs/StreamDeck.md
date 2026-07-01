@@ -48,18 +48,31 @@ echoes it so the client can correlate replies.
 
 | `command` | `args` | Effect |
 | --- | --- | --- |
-| `getState` | — | Returns the current state. |
-| `getSettings` | — | Returns video format / mode / fps / quality / library, plus a nested `snapshot` object. |
-| `start` | `{ "mode": "display\|window\|custom" }` | Begin **video** recording. `display`/`window` capture the target **under the cursor instantly** (true one-press). `custom` opens the selection overlay. `mode` is optional; defaults to the configured default mode. |
-| `snapshot` | `{ "mode": "display\|window\|custom" }` | Take a **still image**. `display`/`window` capture under the cursor instantly; `custom` opens the selection overlay. `mode` optional; defaults to the configured snapshot mode. |
+| `getState` | — | Returns the current state; `data.version` carries the app version. |
+| `getVersion` | — | Returns `data.version` (e.g. `"1.1.0"`) for client feature-gating. |
+| `getSettings` | — | Returns `version`, video format / mode / fps / quality / library, plus a nested `snapshot` object. |
+| `getDisplays` | — | `data.displays`: `[{ id, label, width, height, primary }]` (id is the device name). *(v1.1.0+)* |
+| `getWindows` | — | `data.windows`: `[{ handle, title, process }]` of visible top-level windows. *(v1.1.0+)* |
+| `start` | see below | Begin **video** recording. |
+| `snapshot` | see below | Take a **still image**. |
+| `openLibrary` | `{ "kind": "image\|video" }` | Open the corresponding library folder. *(v1.1.0+)* |
+| `openLast` | `{ "filter": "any\|image\|video" }` | Reveal the last saved capture of that kind (this session). *(v1.1.0+)* |
 | `stop` | — | Stop and finalize the current recording. |
 | `abort` | — | Cancel selection or discard the in-progress recording. |
-| `setFormat` | `{ "format": "mp4\|gif\|webp" }` | Change the video output format. |
-| `setMode` | `{ "mode": "display\|window\|custom" }` | Change the default video capture mode. |
-| `setSnapshotFormat` | `{ "format": "png\|jpeg\|webp" }` | Change the snapshot image format. |
-| `setSnapshotMode` | `{ "mode": "display\|window\|custom" }` | Change the default snapshot capture mode. |
+| `setFormat` / `setMode` | `{ "format" }` / `{ "mode" }` | Change the default video format / capture mode. |
+| `setSnapshotFormat` / `setSnapshotMode` | `{ "format" }` / `{ "mode" }` | Change the default snapshot format / mode. |
 
-A completed snapshot pushes a `snapshotCompleted` event with `{ ok, path, error }`.
+**`start` / `snapshot` args** (all optional, checked in this order):
+| arg | effect |
+| --- | --- |
+| `repeat: true` | Re-run this session's last capture of that kind. *(v1.1.0+)* |
+| `picker: true` + `mode` | Open the selection overlay; `mode` = `default`/`display`/`window`/`custom`. *(v1.1.0+)* |
+| `display: "<id>"` | Capture that specific display (from `getDisplays`). *(v1.1.0+)* |
+| `window: "<handle>"` (+ `windowTitle`) | Capture that specific window; falls back to matching `windowTitle`. *(v1.1.0+)* |
+| `mode: "display\|window\|custom"` | Legacy: `display`/`window` capture under the cursor instantly; `custom` opens the overlay. |
+| `format: "..."` | Override the output format for this one capture. *(v1.1.0+)* |
+
+Events: `stateChanged` `{state}`, `elapsed` `{seconds}` (during recording, ~2/s), `recordingCompleted` and `snapshotCompleted` `{ ok, path, error }`.
 
 Example:
 

@@ -31,7 +31,7 @@ public sealed class SnapshotService
         _frameSourceFactory = frameSourceFactory ?? ((t, c) => new GdiFrameSource(t, c));
     }
 
-    public async Task<SnapshotResult> CaptureAsync(CaptureTarget target)
+    public async Task<SnapshotResult> CaptureAsync(CaptureTarget target, ImageFormat? formatOverride = null)
     {
         var ffmpeg = FfmpegLocator.Resolve();
         if (ffmpeg is null)
@@ -39,6 +39,7 @@ public sealed class SnapshotService
                 "ffmpeg was not found. Bundle ffmpeg.exe next to the app or add it to PATH.");
 
         var s = _settings.Current;
+        var format = formatOverride ?? s.SnapshotFormat;
         var region = target.Region.ToEvenDimensions();
         if (region.IsEmpty)
             return new SnapshotResult(false, null, "Capture region is too small.");
@@ -55,10 +56,10 @@ public sealed class SnapshotService
             pixels = frame.Pixels.ToArray();
         }
 
-        var outputPath = BuildOutputPath(s.SnapshotFormat);
+        var outputPath = BuildOutputPath(format);
         try
         {
-            await EncodeAsync(ffmpeg, pixels, width, height, s.SnapshotFormat, s.Quality, outputPath)
+            await EncodeAsync(ffmpeg, pixels, width, height, format, s.Quality, outputPath)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)

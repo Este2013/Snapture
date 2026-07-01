@@ -45,6 +45,13 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
     private string? _lastSavedPath;
 
+    // Per-session memory for the Stream Deck plugin: the last target and saved
+    // file for each capture kind. Not persisted across sessions (by design).
+    private CaptureTarget? _lastImageTarget;
+    private CaptureTarget? _lastVideoTarget;
+    private string? _lastImagePath;
+    private string? _lastVideoPath;
+
     public AppController()
     {
         _dispatcher = Application.Current.Dispatcher;
@@ -57,7 +64,16 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _controller.RecordingCompleted += OnRecordingCompleted;
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _elapsedTimer.Tick += (_, _) => _recordingBar?.UpdateElapsed(_elapsed.Elapsed);
+        _elapsedTimer.Tick += (_, _) =>
+        {
+            _recordingBar?.UpdateElapsed(_elapsed.Elapsed);
+            _server?.Broadcast(new ControlEvent
+            {
+                Event = "elapsed",
+                State = StateName(_controller.State),
+                Data = new { seconds = (int)_elapsed.Elapsed.TotalSeconds },
+            });
+        };
 
         _clickTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(280) };
         _clickTimer.Tick += (_, _) =>
@@ -211,27 +227,32 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         CloseOverlay(); // dim disappears; the rest of the desktop is usable again
 
         if (kind == CaptureKind.Image)
+        {
+            _lastImageTarget = target;
             _ = TakeSnapshotAsync(target);
+        }
         else
         {
+            _lastVideoTarget = target;
             ShowRecordingBar();
             StartRecordingCore(target);
         }
     }
 
-    private async Task TakeSnapshotAsync(CaptureTarget target)
+    private async Task TakeSnapshotAsync(CaptureTarget target, ImageFormat? formatOverride = null)
     {
         // Snapshots don't drive the recording state machine; release the
         // Selecting state the overlay reserved so the app returns to Idle.
         await _controller.AbortAsync();
 
-        var result = await _snapshot.CaptureAsync(target);
+        var result = await _snapshot.CaptureAsync(target, formatOverride);
 
         _ = _dispatcher.BeginInvoke(() =>
         {
             if (result.Success)
             {
                 _lastSavedPath = result.OutputPath;
+                _lastImagePath = result.OutputPath;
                 Notify("Snapshot saved",
                     $"{Path.GetFileName(result.OutputPath)} — click to open", BalloonIcon.Info);
                 if (_settings.Current.RevealAfterSave && result.OutputPath is not null)
@@ -260,11 +281,11 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _recordingBar.Show();
     }
 
-    private void StartRecordingCore(CaptureTarget target)
+    private void StartRecordingCore(CaptureTarget target, OutputFormat? formatOverride = null)
     {
         try
         {
-            _controller.StartAsync(target);
+            _controller.StartAsync(target, formatOverride);
             _elapsed.Restart();
             _elapsedTimer.Start();
         }
@@ -329,6 +350,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             if (result.Success)
             {
                 _lastSavedPath = result.OutputPath;
+                _lastVideoPath = result.OutputPath;
                 Notify("Recording saved",
                     $"{Path.GetFileName(result.OutputPath)} ({FormatDuration(result.Duration)}) — click to open",
                     BalloonIcon.Info);
@@ -371,12 +393,16 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         switch (command.Command.ToLowerInvariant())
         {
             case "getstate":
-                return ControlResponse.Success(command.Id, state);
+                return ControlResponse.Success(command.Id, state, new { version = AppVersion() });
+
+            case "getversion":
+                return ControlResponse.Success(command.Id, state, new { version = AppVersion() });
 
             case "getsettings":
                 var s = _settings.Current;
                 return ControlResponse.Success(command.Id, state, new
                 {
+                    version = AppVersion(),
                     format = s.OutputFormat.ToString(),
                     mode = s.DefaultCaptureMode.ToString(),
                     frameRate = s.FrameRate,
@@ -391,11 +417,26 @@ public sealed class AppController : IControlCommandHandler, IDisposable
                     },
                 });
 
+            case "getdisplays":
+                return ControlResponse.Success(command.Id, state, new { displays = DisplayList() });
+
+            case "getwindows":
+                return ControlResponse.Success(command.Id, state, new { windows = WindowList() });
+
+            case "openlibrary":
+                OpenInExplorer(string.Equals(command.GetString("kind"), "image", StringComparison.OrdinalIgnoreCase)
+                    ? _settings.ResolveSnapshotLibraryFolder()
+                    : _settings.ResolveLibraryFolder());
+                return ControlResponse.Success(command.Id, state);
+
+            case "openlast":
+                return HandleOpenLast(command, state);
+
             case "start":
-                return HandleStart(command);
+                return HandleCapture(command, CaptureKind.Video);
 
             case "snapshot":
-                return HandleSnapshot(command);
+                return HandleCapture(command, CaptureKind.Image);
 
             case "setsnapshotformat":
                 if (Enum.TryParse<ImageFormat>(command.GetString("format"), true, out var sfmt))
@@ -449,70 +490,177 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     }
 
     /// <summary>
-    /// IPC start. Display/Window resolve instantly from the cursor (true
-    /// one-press Stream Deck capture); Custom opens the selection overlay.
+    /// Unified capture entry point for both kinds. Supports (in priority order):
+    /// <c>repeat</c> (re-run this session's last target), <c>picker</c> (open the
+    /// overlay), an explicit <c>display</c>/<c>window</c> target, or the legacy
+    /// cursor-based mode. An optional <c>format</c> overrides the saved default for
+    /// this one capture.
     /// </summary>
-    private ControlResponse HandleStart(ControlCommand command)
+    private ControlResponse HandleCapture(ControlCommand command, CaptureKind kind)
     {
         if (_controller.State != RecordingState.Idle)
             return ControlResponse.Failure(command.Id, "Already busy.", StateName(_controller.State));
 
+        // Redo the last capture of this kind (session-only memory).
+        if (command.GetBool("repeat"))
+        {
+            var last = kind == CaptureKind.Image ? _lastImageTarget : _lastVideoTarget;
+            if (last is null)
+                return ControlResponse.Failure(command.Id, "No previous capture to repeat in this session.", StateName(_controller.State));
+            return DoCapture(command, kind, last);
+        }
+
+        // Open the selection overlay with a starting mode ("default"/null → the
+        // configured default). Any format override is persisted so the overlay uses it.
+        if (command.GetBool("picker"))
+        {
+            PersistFormatOverride(kind, command.GetString("format"));
+            var picked = Enum.TryParse<CaptureMode>(command.GetString("mode"), true, out var pm)
+                ? (CaptureMode?)pm
+                : null;
+            BeginSelection(kind, picked);
+            return ControlResponse.Success(command.Id, StateName(_controller.State));
+        }
+
+        // A specific display chosen for the action.
+        if (command.GetString("display") is { } displayId)
+        {
+            var t = ResolveDisplayTarget(displayId);
+            return t is null
+                ? ControlResponse.Failure(command.Id, $"Display '{displayId}' not found.", StateName(_controller.State))
+                : DoCapture(command, kind, t);
+        }
+
+        // A specific window chosen for the action (by handle, falling back to title).
+        if (command.GetString("window") is { } winHandle || command.GetString("windowTitle") is not null)
+        {
+            var t = ResolveWindowTarget(command.GetString("window"), command.GetString("windowTitle"));
+            return t is null
+                ? ControlResponse.Failure(command.Id, "The chosen window isn't open right now.", StateName(_controller.State))
+                : DoCapture(command, kind, t);
+        }
+
+        // Legacy cursor-based: Custom opens the overlay; Display/Window capture
+        // whatever is under the cursor instantly.
         var mode = Enum.TryParse<CaptureMode>(command.GetString("mode"), true, out var m)
             ? m
-            : _settings.Current.DefaultCaptureMode;
+            : (kind == CaptureKind.Image ? _settings.Current.SnapshotCaptureMode : _settings.Current.DefaultCaptureMode);
 
         if (mode == CaptureMode.Custom)
         {
-            BeginSelection(CaptureKind.Video, CaptureMode.Custom);
+            BeginSelection(kind, CaptureMode.Custom);
             return ControlResponse.Success(command.Id, StateName(_controller.State));
         }
 
         if (!NativeMethods.GetCursorPos(out var p))
             return ControlResponse.Failure(command.Id, "Cursor position unavailable.");
 
-        CaptureTarget? target = mode == CaptureMode.Display
-            ? DisplayTargetAt(p.X, p.Y)
-            : WindowTargetAt(p.X, p.Y);
+        var target = mode == CaptureMode.Display ? DisplayTargetAt(p.X, p.Y) : WindowTargetAt(p.X, p.Y);
+        return target is null
+            ? ControlResponse.Failure(command.Id, "No capture target under cursor.", StateName(_controller.State))
+            : DoCapture(command, kind, target);
+    }
 
-        if (target is null)
-            return ControlResponse.Failure(command.Id, "No capture target under cursor.");
-
-        ShowRecordingBar();
-        StartRecordingCore(target);
+    /// <summary>Run an instant (no-overlay) capture of a resolved target, remembering it.</summary>
+    private ControlResponse DoCapture(ControlCommand command, CaptureKind kind, CaptureTarget target)
+    {
+        if (kind == CaptureKind.Image)
+        {
+            _lastImageTarget = target;
+            var fmt = Enum.TryParse<ImageFormat>(command.GetString("format"), true, out var f) ? (ImageFormat?)f : null;
+            _ = TakeSnapshotAsync(target, fmt);
+        }
+        else
+        {
+            _lastVideoTarget = target;
+            var fmt = Enum.TryParse<OutputFormat>(command.GetString("format"), true, out var f) ? (OutputFormat?)f : null;
+            ShowRecordingBar();
+            StartRecordingCore(target, fmt);
+        }
         return ControlResponse.Success(command.Id, StateName(_controller.State));
     }
 
-    /// <summary>
-    /// IPC snapshot. Mirrors <see cref="HandleStart"/> but produces a still image:
-    /// Display/Window capture instantly from the cursor; Custom opens the overlay.
-    /// </summary>
-    private ControlResponse HandleSnapshot(ControlCommand command)
+    private void PersistFormatOverride(CaptureKind kind, string? format)
     {
-        if (_controller.State != RecordingState.Idle)
-            return ControlResponse.Failure(command.Id, "Already busy.", StateName(_controller.State));
+        if (format is null) return;
+        if (kind == CaptureKind.Image && Enum.TryParse<ImageFormat>(format, true, out var ifmt))
+            _settings.Current.SnapshotFormat = ifmt;
+        else if (kind == CaptureKind.Video && Enum.TryParse<OutputFormat>(format, true, out var vfmt))
+            _settings.Current.OutputFormat = vfmt;
+        else
+            return;
+        _settings.Save(_settings.Current);
+    }
 
-        var mode = Enum.TryParse<CaptureMode>(command.GetString("mode"), true, out var m)
-            ? m
-            : _settings.Current.SnapshotCaptureMode;
-
-        if (mode == CaptureMode.Custom)
+    private ControlResponse HandleOpenLast(ControlCommand command, string state)
+    {
+        var filter = command.GetString("filter")?.ToLowerInvariant();
+        string? path = filter switch
         {
-            BeginSelection(CaptureKind.Image, CaptureMode.Custom);
-            return ControlResponse.Success(command.Id, StateName(_controller.State));
+            "image" => _lastImagePath,
+            "video" => _lastVideoPath,
+            _ => MostRecent(_lastImagePath, _lastVideoPath),
+        };
+        if (path is null || !File.Exists(path))
+            return ControlResponse.Failure(command.Id, "No matching capture saved this session.", state);
+        Reveal(path);
+        return ControlResponse.Success(command.Id, state, new { path });
+    }
+
+    private static string? MostRecent(string? a, string? b)
+    {
+        bool ea = a is not null && File.Exists(a), eb = b is not null && File.Exists(b);
+        if (ea && eb) return File.GetLastWriteTimeUtc(a!) >= File.GetLastWriteTimeUtc(b!) ? a : b;
+        return ea ? a : eb ? b : null;
+    }
+
+    private CaptureTarget? ResolveDisplayTarget(string id)
+    {
+        var mon = ScreenInfo.GetMonitors().FirstOrDefault(m => string.Equals(m.Name, id, StringComparison.OrdinalIgnoreCase));
+        return mon is null
+            ? null
+            : new CaptureTarget { Mode = CaptureMode.Display, Region = mon.Bounds, Label = mon.Name };
+    }
+
+    private CaptureTarget? ResolveWindowTarget(string? handleStr, string? title)
+    {
+        if (nint.TryParse(handleStr, out var h) && ScreenInfo.WindowBounds(h) is { } b)
+            return new CaptureTarget { Mode = CaptureMode.Window, Region = b, WindowHandle = h, Label = title };
+
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            var match = ScreenInfo.GetOpenWindows().FirstOrDefault(w => string.Equals(w.Title, title, StringComparison.Ordinal));
+            if (match is not null)
+                return new CaptureTarget { Mode = CaptureMode.Window, Region = match.Bounds, WindowHandle = match.Handle, Label = match.Title };
         }
+        return null;
+    }
 
-        if (!NativeMethods.GetCursorPos(out var p))
-            return ControlResponse.Failure(command.Id, "Cursor position unavailable.");
+    private static object[] DisplayList()
+    {
+        var monitors = ScreenInfo.GetMonitors();
+        return monitors.Select((m, i) => (object)new
+        {
+            id = m.Name,
+            label = $"Display {i + 1} — {m.Bounds.Width}×{m.Bounds.Height}" + (m.IsPrimary ? " (primary)" : ""),
+            width = m.Bounds.Width,
+            height = m.Bounds.Height,
+            primary = m.IsPrimary,
+        }).ToArray();
+    }
 
-        CaptureTarget? target = mode == CaptureMode.Display
-            ? DisplayTargetAt(p.X, p.Y)
-            : WindowTargetAt(p.X, p.Y);
+    private static object[] WindowList() =>
+        ScreenInfo.GetOpenWindows().Select(w => (object)new
+        {
+            handle = w.Handle.ToString(),
+            title = w.Title,
+            process = w.Process,
+        }).ToArray();
 
-        if (target is null)
-            return ControlResponse.Failure(command.Id, "No capture target under cursor.");
-
-        _ = TakeSnapshotAsync(target);
-        return ControlResponse.Success(command.Id, StateName(_controller.State));
+    private static string AppVersion()
+    {
+        var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0, 0);
+        return $"{v.Major}.{v.Minor}.{v.Build}";
     }
 
     private static CaptureTarget DisplayTargetAt(int x, int y)

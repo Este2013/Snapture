@@ -1,10 +1,15 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using Snapture.Core.Models;
 
 namespace Snapture.App.Interop;
 
 /// <summary>A monitor's physical-pixel bounds and identity.</summary>
 public sealed record MonitorInfo(string Name, bool IsPrimary, CaptureRegion Bounds);
+
+/// <summary>A visible top-level window: handle, title, owning process, bounds.</summary>
+public sealed record OpenWindow(nint Handle, string Title, string Process, CaptureRegion Bounds);
 
 /// <summary>
 /// Enumerates monitors and resolves the window under a point — both in physical
@@ -75,6 +80,58 @@ public static class ScreenInfo
         return bounds.IsEmpty ? null : (found, bounds);
     }
 
+    /// <summary>Every visible, non-tool, titled top-level window (excludes our own process).</summary>
+    public static IReadOnlyList<OpenWindow> GetOpenWindows()
+    {
+        var myPid = (uint)Environment.ProcessId;
+        var result = new List<OpenWindow>();
+
+        EnumWindows((hwnd, _) =>
+        {
+            if (!IsWindowVisible(hwnd) || IsIconic(hwnd)) return true;
+            GetWindowThreadProcessId(hwnd, out var pid);
+            if (pid == myPid || IsCloaked(hwnd)) return true;
+            if ((GetWindowLong(hwnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) != 0) return true;
+            if (!TryGetBounds(hwnd, out var r)) return true;
+
+            int w = r.Right - r.Left, h = r.Bottom - r.Top;
+            if (w <= 0 || h <= 0) return true;
+
+            var title = GetTitle(hwnd);
+            if (string.IsNullOrWhiteSpace(title)) return true;
+
+            result.Add(new OpenWindow(hwnd, title, ProcessName(pid),
+                new CaptureRegion(r.Left, r.Top, w, h)));
+            return true;
+        }, nint.Zero);
+
+        return result;
+    }
+
+    /// <summary>Current bounds of a window handle, or null if it's gone/hidden/minimized.</summary>
+    public static CaptureRegion? WindowBounds(nint hwnd)
+    {
+        if (hwnd == nint.Zero || !IsWindowVisible(hwnd) || IsIconic(hwnd)) return null;
+        if (!TryGetBounds(hwnd, out var r)) return null;
+        int w = r.Right - r.Left, h = r.Bottom - r.Top;
+        return w > 0 && h > 0 ? new CaptureRegion(r.Left, r.Top, w, h) : null;
+    }
+
+    private static string GetTitle(nint hwnd)
+    {
+        int len = GetWindowTextLength(hwnd);
+        if (len <= 0) return string.Empty;
+        var sb = new StringBuilder(len + 1);
+        GetWindowText(hwnd, sb, sb.Capacity);
+        return sb.ToString();
+    }
+
+    private static string ProcessName(uint pid)
+    {
+        try { using var p = Process.GetProcessById((int)pid); return p.ProcessName; }
+        catch { return string.Empty; }
+    }
+
     /// <summary>Prefer the DWM extended frame (excludes the invisible drop-shadow border).</summary>
     private static bool TryGetBounds(nint hwnd, out RECT rect)
     {
@@ -114,6 +171,12 @@ public static class ScreenInfo
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(nint hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(nint hWnd, StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    private static extern int GetWindowTextLength(nint hWnd);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmGetWindowAttribute(nint hwnd, int attr, out RECT value, int size);

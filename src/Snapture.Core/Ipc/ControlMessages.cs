@@ -21,6 +21,15 @@ public sealed class ControlCommand
             ? v.GetString()
             : null;
 
+    /// <summary>Read a bool field from <c>args</c> (accepts JSON true or the string "true").</summary>
+    public bool GetBool(string name)
+    {
+        if (Args.ValueKind != JsonValueKind.Object || !Args.TryGetProperty(name, out var v))
+            return false;
+        return v.ValueKind == JsonValueKind.True
+            || (v.ValueKind == JsonValueKind.String && string.Equals(v.GetString(), "true", StringComparison.OrdinalIgnoreCase));
+    }
+
     public static ControlCommand? Parse(string line)
     {
         try
