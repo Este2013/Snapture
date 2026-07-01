@@ -7,10 +7,10 @@
   "targets": {
     ".NETCoreApp,Version=v9.0": {},
     ".NETCoreApp,Version=v9.0/win-x64": {
-      "Snapture/1.0.0": {
+      "Snapture/1.0.1": {
         "dependencies": {
           "Hardcodet.NotifyIcon.Wpf": "2.0.1",
-          "Snapture.Core": "1.0.0",
+          "Snapture.Core": "1.0.1",
           "runtimepack.Microsoft.NETCore.App.Runtime.win-x64": "9.0.16",
           "runtimepack.Microsoft.WindowsDesktop.App.Runtime.win-x64": "9.0.16"
         },
@@ -990,18 +990,18 @@
           }
         }
       },
-      "Snapture.Core/1.0.0": {
+      "Snapture.Core/1.0.1": {
         "runtime": {
           "Snapture.Core.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
+            "assemblyVersion": "1.0.1.0",
+            "fileVersion": "1.0.1.0"
           }
         }
       }
     }
   },
   "libraries": {
-    "Snapture/1.0.0": {
+    "Snapture/1.0.1": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
@@ -1023,7 +1023,7 @@
       "path": "hardcodet.notifyicon.wpf/2.0.1",
       "hashPath": "hardcodet.notifyicon.wpf.2.0.1.nupkg.sha512"
     },
-    "Snapture.Core/1.0.0": {
+    "Snapture.Core/1.0.1": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
