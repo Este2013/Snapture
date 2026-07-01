@@ -1,10 +1,14 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
+using System.Text;
 using System.Windows;
+using Snapture.App.Views;
 using Snapture.Core.Encoding;
 using Snapture.Core.Models;
 using Snapture.Core.Settings;
+using Snapture.Core.Update;
 
 namespace Snapture.App;
 
@@ -14,6 +18,10 @@ public partial class MainWindow : Window
     private readonly Action<CaptureKind> _startCapture;
     private bool _loading;
     private string? _ffmpegPath;
+
+    private UpdateService _updater = null!;
+    private UpdateManifest? _manifestCache;
+    private ReleaseInfo? _pendingUpdate;
 
     /// <summary>When false, closing hides to tray instead of exiting.</summary>
     public bool AllowClose { get; set; }
@@ -27,6 +35,93 @@ public partial class MainWindow : Window
         WireEvents();
         LoadFromSettings();
         RefreshFfmpegStatus();
+        InitUpdates();
+    }
+
+    // ---- updates ----------------------------------------------------------
+
+    private void InitUpdates()
+    {
+        var v = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0, 0);
+        _updater = new UpdateService(v);
+        VersionText.Text = ShortVersion(v);
+
+        HeaderBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed) DragMove(); };
+        CloseXButton.Click += (_, _) => Hide();
+        ReleaseNotesButton.Click += async (_, _) => await ShowReleaseNotesAsync();
+        CheckUpdatesButton.Click += async (_, _) => await CheckForUpdatesAsync(manual: true);
+        UpdateBellButton.Click += (_, _) => ShowUpdateDialog();
+
+        _ = CheckForUpdatesAsync(manual: false); // silent auto-check on open
+    }
+
+    private static string ShortVersion(Version v) => $"v{v.Major}.{v.Minor}.{v.Build}";
+
+    private async Task CheckForUpdatesAsync(bool manual)
+    {
+        if (manual) CheckUpdatesButton.IsEnabled = false;
+        var manifest = await _updater.FetchManifestAsync();
+        if (manual) CheckUpdatesButton.IsEnabled = true;
+
+        if (manifest is null)
+        {
+            if (manual)
+                MessageBox.Show(this, "Couldn't reach the update server. Check your connection and try again.",
+                    "Snapture", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _manifestCache = manifest;
+        _pendingUpdate = _updater.FindNewer(manifest);
+
+        if (_pendingUpdate is not null)
+        {
+            UpdateBellButton.ToolTip =
+                $"A new version is ready to install: {_pendingUpdate.Version}; " +
+                $"you currently have {ShortVersion(_updater.CurrentVersion)[1..]}";
+            UpdateBellButton.Visibility = Visibility.Visible;
+            CheckUpdatesButton.Visibility = Visibility.Collapsed; // the bell takes its place
+        }
+        else
+        {
+            UpdateBellButton.Visibility = Visibility.Collapsed;
+            CheckUpdatesButton.Visibility = Visibility.Visible;
+            if (manual)
+                MessageBox.Show(this, $"You're running the latest version ({ShortVersion(_updater.CurrentVersion)}).",
+                    "Snapture", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private void ShowUpdateDialog()
+    {
+        if (_pendingUpdate is null) return;
+        new ReleaseNotesWindow($"Snapture {_pendingUpdate.Version}", _pendingUpdate.Notes ?? "",
+            _updater, _pendingUpdate) { Owner = this }.ShowDialog();
+    }
+
+    private async Task ShowReleaseNotesAsync()
+    {
+        var manifest = _manifestCache ?? await _updater.FetchManifestAsync();
+        string notes;
+        if (manifest is null || manifest.Releases.Count == 0)
+        {
+            notes = "Release notes are unavailable right now.";
+        }
+        else
+        {
+            _manifestCache = manifest;
+            var sb = new StringBuilder();
+            foreach (var r in manifest.Releases.OrderByDescending(r => r.SemVer))
+            {
+                sb.Append('v').Append(r.Version);
+                if (!string.IsNullOrWhiteSpace(r.Date)) sb.Append("  —  ").Append(r.Date);
+                sb.AppendLine();
+                if (!string.IsNullOrWhiteSpace(r.Notes)) sb.AppendLine(r.Notes.Trim());
+                sb.AppendLine();
+            }
+            notes = sb.ToString().TrimEnd();
+        }
+        new ReleaseNotesWindow("Release notes", notes) { Owner = this }.ShowDialog();
     }
 
     private void WireEvents()

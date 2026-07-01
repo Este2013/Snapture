@@ -1,0 +1,4 @@
+# Build outputs and the gh-pages worktree (never committed to main).
+publish/
+dist/
+.ghpages/
