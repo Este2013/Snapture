@@ -17,6 +17,7 @@ public partial class MainWindow : Window
 {
     private readonly SettingsService _settings;
     private readonly Action<CaptureKind> _startCapture;
+    private readonly Action _quit;
     private bool _loading;
     private string? _ffmpegPath;
 
@@ -27,10 +28,11 @@ public partial class MainWindow : Window
     /// <summary>When false, closing hides to tray instead of exiting.</summary>
     public bool AllowClose { get; set; }
 
-    public MainWindow(SettingsService settings, Action<CaptureKind> startCapture)
+    public MainWindow(SettingsService settings, Action<CaptureKind> startCapture, Action quit)
     {
         _settings = settings;
         _startCapture = startCapture;
+        _quit = quit;
         InitializeComponent();
 
         WireEvents();
@@ -162,7 +164,14 @@ public partial class MainWindow : Window
         FfmpegStatus.MouseLeftButtonUp += (_, _) => OpenFfmpegFolder();
 
         StartButton.Click += (_, _) => { Hide(); _startCapture(SelectedKind()); };
-        CloseButton.Click += (_, _) => Hide();
+        GitHubButton.Click += (_, _) => OpenUrl("https://github.com/Este2013/Snapture");
+        QuitButton.Click += (_, _) => _quit();
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch { /* ignore */ }
     }
 
     private CaptureKind SelectedKind() =>

@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using Snapture.App.Interop;
+using Snapture.Core.Models;
 
 namespace Snapture.App.Views;
 
@@ -22,7 +23,6 @@ internal sealed class DisplayMapControl : Border
     private const double GapPx = 6; // visual gap between tiles (DIP), like Windows Settings
 
     private static readonly Brush TileFill = Frozen(0xFF3A3A3D);
-    private static readonly Brush TileFillHover = Frozen(0xFF4A4A4E);
     private static readonly Brush TileStroke = Frozen(0xFF5A5A5E);
     private static readonly Brush AccentStroke = Frozen(0xFF60CDFF);
     private static readonly Brush TextSecondary = Frozen(0xFFBBBBBB);
@@ -30,7 +30,7 @@ internal sealed class DisplayMapControl : Border
     private readonly Canvas _canvas = new();
     private readonly List<(MonitorInfo Mon, Border Tile)> _tiles = new();
     private readonly Ellipse _badge;
-    private Border? _hoveredTile;
+    private Border? _activeTile;
 
     private int _minX, _minY;
     private double _scale = 1;
@@ -71,29 +71,40 @@ internal sealed class DisplayMapControl : Border
         // overlay (which would confirm whatever monitor is under the cursor).
         MouseLeftButtonDown += (_, e) => e.Handled = true;
 
-        // Only drop the preview when the pointer leaves the whole card — not when
-        // it crosses the gaps between tiles (which otherwise flashes the selection
-        // back to the cursor's monitor and to the next tile).
-        MouseLeave += (_, _) =>
-        {
-            if (_hoveredTile is null) return;
-            _hoveredTile.BorderBrush = TileStroke;
-            _hoveredTile.Background = TileFill;
-            _hoveredTile = null;
-            DisplayHovered?.Invoke(null);
-        };
+        // Only drop the map preview when the pointer leaves the whole card — not
+        // when it crosses the gaps between tiles (which otherwise flashes the
+        // selection back to the cursor's monitor and to the next tile).
+        MouseLeave += (_, _) => DisplayHovered?.Invoke(null);
     }
 
     public event Action<MonitorInfo>? DisplayClicked;
 
-    /// <summary>Raised when the pointer enters/leaves a display tile (null on leave).</summary>
+    /// <summary>Raised when the pointer enters a display tile, or leaves the card (null).</summary>
     public event Action<MonitorInfo?>? DisplayHovered;
+
+    /// <summary>
+    /// Outline the tile of the monitor that is about to be selected. Driven by the
+    /// overlay's current target, so the border follows whether that target came
+    /// from hovering a tile or from the monitor under the physical cursor.
+    /// </summary>
+    public void Highlight(CaptureRegion? bounds)
+    {
+        Border? match = null;
+        if (bounds is { } b)
+            foreach (var (mon, tile) in _tiles)
+                if (mon.Bounds.Equals(b)) { match = tile; break; }
+
+        if (ReferenceEquals(match, _activeTile)) return;
+        if (_activeTile is not null) _activeTile.BorderBrush = TileStroke;
+        _activeTile = match;
+        if (_activeTile is not null) _activeTile.BorderBrush = AccentStroke;
+    }
 
     public void Build(IReadOnlyList<MonitorInfo> monitors)
     {
         _canvas.Children.Clear();
         _tiles.Clear();
-        _hoveredTile = null;
+        _activeTile = null;
         if (monitors.Count == 0) return;
 
         _minX = monitors.Min(m => m.Bounds.X);
@@ -176,21 +187,10 @@ internal sealed class DisplayMapControl : Border
         Canvas.SetLeft(tile, x);
         Canvas.SetTop(tile, y);
 
-        // Hovering a tile highlights it (accent border) and previews that display.
-        tile.MouseEnter += (_, _) =>
-        {
-            if (_hoveredTile is not null && !ReferenceEquals(_hoveredTile, tile))
-            {
-                _hoveredTile.BorderBrush = TileStroke;
-                _hoveredTile.Background = TileFill;
-            }
-            _hoveredTile = tile;
-            tile.BorderBrush = AccentStroke;
-            tile.Background = TileFillHover;
-            DisplayHovered?.Invoke(m);
-        };
-        // No per-tile MouseLeave: the last hovered tile stays selected while the
-        // pointer is over the gaps; the card-level MouseLeave clears it.
+        // Hovering a tile previews that display; the accent border is applied by
+        // Highlight() in response, so it also works when the pointer isn't on a
+        // tile (the monitor under the cursor gets outlined instead).
+        tile.MouseEnter += (_, _) => DisplayHovered?.Invoke(m);
         tile.MouseLeftButtonDown += (_, e) => { e.Handled = true; DisplayClicked?.Invoke(m); };
         return tile;
     }

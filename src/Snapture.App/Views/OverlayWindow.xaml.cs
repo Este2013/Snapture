@@ -312,6 +312,7 @@ public partial class OverlayWindow : Window
         {
             UpdateHoverTarget(_cursorPx, _cursorPy);
         }
+        _displayMap?.Highlight(_hoverRegion);
         UpdateVisuals();
         RaiseTarget();
     }
@@ -333,6 +334,7 @@ public partial class OverlayWindow : Window
         Canvas.SetLeft(_displayMap, px + (pw - _displayMap.DesiredSize.Width) / 2);
         Canvas.SetTop(_displayMap, py + (ph - _displayMap.DesiredSize.Height) / 2);
         _displayMap.UpdateMouse(_cursorPx, _cursorPy);
+        _displayMap.Highlight(_hoverRegion);
     }
 
     private void OnClosed(object? sender, EventArgs e)
@@ -478,7 +480,11 @@ public partial class OverlayWindow : Window
             {
                 UpdateHoverTarget(px, py);
             }
-            if (_mode == CaptureMode.Display) _displayMap?.UpdateMouse(px, py);
+            if (_mode == CaptureMode.Display)
+            {
+                _displayMap?.UpdateMouse(px, py);
+                _displayMap?.Highlight(_hoverRegion);
+            }
             UpdateVisuals();
             RaiseTarget();
             return;

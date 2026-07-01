@@ -70,7 +70,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     public void Startup()
     {
         BuildTray();
-        _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null));
+        _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown);
         StartControlServerIfEnabled();
         RegisterHotkeys();
     }
@@ -152,7 +152,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
     private void ShowSettings()
     {
-        _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null));
+        _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown);
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
