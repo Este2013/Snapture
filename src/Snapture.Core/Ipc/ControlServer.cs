@@ -44,6 +44,9 @@ public sealed class ControlServer : IAsyncDisposable
     /// <summary>Number of currently connected clients (e.g. the Stream Deck plugin).</summary>
     public int ClientCount => _clients.Count;
 
+    /// <summary>UTC time a line was last received from any client (for liveness checks).</summary>
+    public DateTime LastActivityUtc { get; private set; } = DateTime.UtcNow;
+
     /// <summary>Raised (on a background thread) when a client connects or disconnects.</summary>
     public event Action? ClientsChanged;
 
@@ -117,6 +120,7 @@ public sealed class ControlServer : IAsyncDisposable
             string? line;
             while ((line = await reader.ReadLineAsync(linked.Token).ConfigureAwait(false)) is not null)
             {
+                LastActivityUtc = DateTime.UtcNow;
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
 

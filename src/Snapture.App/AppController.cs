@@ -88,7 +88,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     {
         BuildTray();
         _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
-            () => _server?.ClientCount > 0, PingPlugin);
+            IsPluginConnected, PingPlugin);
         StartControlServerIfEnabled();
         RegisterHotkeys();
     }
@@ -171,7 +171,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private void ShowSettings()
     {
         _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
-            () => _server?.ClientCount > 0, PingPlugin);
+            IsPluginConnected, PingPlugin);
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
@@ -391,6 +391,10 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     /// <summary>Ping connected plugin clients (they flash a message on their keys).</summary>
     private void PingPlugin() => _server?.Broadcast(new ControlEvent { Event = "ping" });
 
+    /// <summary>A plugin counts as connected only while it's still sending heartbeats.</summary>
+    private bool IsPluginConnected() =>
+        _server is { } s && s.ClientCount > 0 && (DateTime.UtcNow - s.LastActivityUtc).TotalSeconds < 8;
+
     public Task<ControlResponse> HandleAsync(ControlCommand command, CancellationToken cancellationToken)
         => _dispatcher.InvokeAsync(() => Dispatch(command)).Task;
 
@@ -404,6 +408,9 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
             case "getversion":
                 return ControlResponse.Success(command.Id, state, new { version = AppVersion() });
+
+            case "heartbeat": // liveness ping from the plugin; receipt already stamped activity
+                return ControlResponse.Success(command.Id, state);
 
             case "getsettings":
                 var s = _settings.Current;
@@ -622,25 +629,10 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         return ControlResponse.Success(command.Id, state, new { path });
     }
 
-    /// <summary>Open a saved capture in an app: images in the Snipping Tool, videos in the default player.</summary>
+    /// <summary>Open a saved capture with its default app (image viewer / video player).</summary>
     private static void OpenFileWithApp(string path)
     {
-        var ext = Path.GetExtension(path).ToLowerInvariant();
-        bool isImage = ext is ".png" or ".jpg" or ".jpeg" or ".webp" or ".bmp" or ".gif";
-        try
-        {
-            if (isImage)
-            {
-                // Win11 Snipping Tool ships as the "SnippingTool.exe" app alias; if it
-                // can't open the file, fall back to the default image handler.
-                try { Process.Start(new ProcessStartInfo("SnippingTool.exe", $"\"{path}\"") { UseShellExecute = true }); }
-                catch { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-            }
-            else
-            {
-                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); // default video player
-            }
-        }
+        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
         catch { /* nothing sensible to do */ }
     }
 
