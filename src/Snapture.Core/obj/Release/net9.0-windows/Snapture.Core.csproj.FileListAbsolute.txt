@@ -1,0 +1,12 @@
+C:\PROJECTS\Snapture\src\Snapture.Core\bin\Release\net9.0-windows\Snapture.Core.deps.json
+C:\PROJECTS\Snapture\src\Snapture.Core\bin\Release\net9.0-windows\Snapture.Core.dll
+C:\PROJECTS\Snapture\src\Snapture.Core\bin\Release\net9.0-windows\Snapture.Core.pdb
+C:\PROJECTS\Snapture\src\Snapture.Core\obj\Release\net9.0-windows\Snapture.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\PROJECTS\Snapture\src\Snapture.Core\obj\Release\net9.0-windows\Snapture.Core.AssemblyInfoInputs.cache
+C:\PROJECTS\Snapture\src\Snapture.Core\obj\Release\net9.0-windows\Snapture.Core.AssemblyInfo.cs
+C:\PROJECTS\Snapture\src\Snapture.Core\obj\Release\net9.0-windows\Snapture.Core.csproj.CoreCompileInputs.cache
+C:\PROJECTS\Snapture\src\Snapture.Core\obj\Release\net9.0-windows\Snapture.Core.sourcelink.json
+C:\PROJECTS\Snapture\src\Snapture.Core\obj\Release\net9.0-windows\Snapture.Core.dll
+C:\PROJECTS\Snapture\src\Snapture.Core\obj\Release\net9.0-windows\refint\Snapture.Core.dll
+C:\PROJECTS\Snapture\src\Snapture.Core\obj\Release\net9.0-windows\Snapture.Core.pdb
+C:\PROJECTS\Snapture\src\Snapture.Core\obj\Release\net9.0-windows\ref\Snapture.Core.dll

@@ -28,6 +28,34 @@
           "bin/placeholder/Snapture.Core.dll": {}
         }
       }
+    },
+    "net9.0-windows7.0/win-x64": {
+      "Hardcodet.NotifyIcon.Wpf/2.0.1": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0-windows7.0/Hardcodet.NotifyIcon.Wpf.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0-windows7.0/Hardcodet.NotifyIcon.Wpf.dll": {
+            "related": ".xml"
+          }
+        },
+        "frameworkReferences": [
+          "Microsoft.WindowsDesktop.App"
+        ]
+      },
+      "Snapture.Core/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "compile": {
+          "bin/placeholder/Snapture.Core.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Snapture.Core.dll": {}
+        }
+      }
     }
   },
   "libraries": {
@@ -140,6 +168,10 @@
             "version": "[9.0.16, 9.0.16]"
           },
           {
+            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+            "version": "[9.0.16, 9.0.16]"
+          },
+          {
             "name": "Microsoft.NETCore.App.Host.win-x64",
             "version": "[9.0.16, 9.0.16]"
           },
@@ -148,7 +180,15 @@
             "version": "[9.0.16, 9.0.16]"
           },
           {
+            "name": "Microsoft.NETCore.App.Runtime.win-x64",
+            "version": "[9.0.16, 9.0.16]"
+          },
+          {
             "name": "Microsoft.WindowsDesktop.App.Ref",
+            "version": "[9.0.16, 9.0.16]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
             "version": "[9.0.16, 9.0.16]"
           }
         ],
@@ -161,6 +201,11 @@
           }
         },
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.204/PortableRuntimeIdentifierGraph.json"
+      }
+    },
+    "runtimes": {
+      "win-x64": {
+        "#import": []
       }
     }
   }
