@@ -67,6 +67,13 @@
         </Setter>
     </Style>
 
+    <!-- Tooltips must not inherit an icon font from their target button, or the
+         text renders as glyph boxes. Force a normal UI font for all tooltips. -->
+    <Style TargetType="ToolTip">
+        <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
     <!-- Compact icon-only button (uses Segoe Fluent Icons glyphs as content). -->
     <Style x:Key="IconButton" TargetType="Button">
         <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
