@@ -1,0 +1,12 @@
+{
+  "product": "Snapture",
+  "releases": [
+    {
+      "version": "1.0.0",
+      "date": "2026-07-01",
+      "notes": "First release: video recording, snapshots, display picker, logical-area snap, and in-app updates.",
+      "installerUrl": "https://este2013.github.io/Snapture/Snapture-Setup-1.0.0.exe",
+      "sha256": "92d9110034a9f8b3b37ec6a608d08d8fd5ee59b847c159b7f1073adb2c08990b"
+    }
+  ]
+}
