@@ -63,6 +63,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
         _controller.StateChanged += OnStateChanged;
         _controller.RecordingCompleted += OnRecordingCompleted;
+        _settings.SettingsChanged += (_, _) => ApplyServerSetting();
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _elapsedTimer.Tick += (_, _) =>
@@ -386,6 +387,37 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         };
         _server.ClientsChanged += () => _dispatcher.BeginInvoke(() => _mainWindow?.RefreshPluginStatus());
         _server.Start();
+        _activeServerPort = _settings.Current.ControlServerPort;
+    }
+
+    private int _activeServerPort;
+
+    /// <summary>Start/stop/restart the control server to match the current settings.</summary>
+    private void ApplyServerSetting()
+    {
+        var want = _settings.Current.EnableControlServer;
+        var port = _settings.Current.ControlServerPort;
+        var running = _server is not null;
+
+        if (want && !running)
+            StartControlServerIfEnabled();
+        else if (!want && running)
+            StopControlServer();
+        else if (want && running && port != _activeServerPort)
+        {
+            StopControlServer();
+            StartControlServerIfEnabled();
+        }
+
+        _mainWindow?.RefreshPluginStatus();
+    }
+
+    private void StopControlServer()
+    {
+        var s = _server;
+        _server = null;
+        if (s is not null)
+            try { _ = s.DisposeAsync(); } catch { }
     }
 
     /// <summary>Ping connected plugin clients (they flash a message on their keys).</summary>

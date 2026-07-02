@@ -55,7 +55,7 @@ public partial class MainWindow : Window
         RefreshPluginStatus();
     }
 
-    private enum PluginState { Connected, Marketplace, StartSd }
+    private enum PluginState { ServerOff, Connected, Marketplace, StartSd }
     private PluginState _pluginState = PluginState.StartSd;
 
     private static bool StreamDeckRunning() => Process.GetProcessesByName("StreamDeck").Length > 0;
@@ -63,6 +63,15 @@ public partial class MainWindow : Window
     /// <summary>Recompute the Stream Deck / plugin connection indicator.</summary>
     public void RefreshPluginStatus()
     {
+        PluginStatusButton.IsEnabled = _settings.Current.EnableControlServer;
+        if (!_settings.Current.EnableControlServer)
+        {
+            _pluginState = PluginState.ServerOff;
+            PluginStatusButton.Content = Dot(Colors.Gray);
+            PluginStatusButton.ToolTip = "Stream Deck server is off — the plugin can't connect";
+            return;
+        }
+
         if (_isPluginConnected())
         {
             _pluginState = PluginState.Connected;

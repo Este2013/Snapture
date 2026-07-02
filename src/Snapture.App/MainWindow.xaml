@@ -238,7 +238,8 @@
             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,8" HorizontalAlignment="Left">
                 <CheckBox x:Name="ServerCheck" Content="Enable on port" VerticalAlignment="Center" />
                 <TextBox x:Name="PortBox" Width="80" Margin="10,0,0,0" VerticalAlignment="Center" />
-                <Button x:Name="PluginStatusButton" Style="{StaticResource IconButton}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <Button x:Name="PluginStatusButton" Style="{StaticResource IconButton}" Margin="12,0,0,0"
+                        VerticalAlignment="Center" ToolTipService.ShowOnDisabled="True" />
                 <Button x:Name="PluginGitHubButton" Style="{StaticResource IconButton}" VerticalAlignment="Center"
                         ToolTip="Open the Stream Deck plugin on GitHub">
                     <Viewbox Width="16" Height="16">
