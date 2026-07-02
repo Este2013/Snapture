@@ -1,5 +1,5 @@
 ﻿Snapture
-1.1.0.0
+
 
 winexe
 C#
@@ -12,9 +12,9 @@ TRACE;DEBUG;NET;NET9_0;NETCOREAPP;WINDOWS;WINDOWS10_0_19041_0;NET5_0_OR_GREATER;
 C:\PROJECTS\Snapture\src\Snapture.App\App.xaml
 5-516737403
 
-20-449586902
+18-28712111
 215979225715
 MainWindow.xaml;Views\OverlayWindow.xaml;Views\RecordingBarWindow.xaml;Views\ReleaseNotesWindow.xaml;Views\Theme.xaml;
 
-True
+False
 
