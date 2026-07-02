@@ -35,6 +35,31 @@
         </Setter>
     </Style>
 
+    <!-- Footer capture button: grey background with an accent (red) icon; on hover
+         it fills red with a white icon (the icon follows Foreground). -->
+    <Style x:Key="FooterCaptureButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource RecordAccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="b" Property="Background" Value="{StaticResource RecordAccentHoverBrush}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- One segment of a segmented control. Place several inside the
          SegmentedContainer border below, sharing a GroupName. -->
     <Style x:Key="SegmentRadioButton" TargetType="RadioButton">
@@ -118,6 +143,9 @@
                                  Fill="{DynamicResource TextFillColorSecondaryBrush}" />
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="track" Property="Background"
                                     Value="{DynamicResource AccentFillColorDefaultBrush}" />

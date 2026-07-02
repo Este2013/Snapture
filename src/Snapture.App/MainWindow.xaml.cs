@@ -23,10 +23,12 @@ public partial class MainWindow : Window
     private readonly Func<bool> _isPluginConnected;
     private readonly Action _pingPlugin;
     private readonly Action<bool> _suspendHotkeys;
+    private readonly Action _stopRecording;
     private readonly System.Windows.Threading.DispatcherTimer _pluginPoll;
     private bool _loading;
+    private bool _recording;
     private string? _ffmpegPath;
-    private string? _capturingHotkey; // "snap" | "rec" while editing a shortcut
+    private string? _capturingHotkey; // "picker" | "snap" | "rec" while editing a shortcut
 
     private UpdateService _updater = null!;
     private UpdateManifest? _manifestCache;
@@ -36,7 +38,7 @@ public partial class MainWindow : Window
     public bool AllowClose { get; set; }
 
     public MainWindow(SettingsService settings, Action<CaptureKind> startCapture, Action quit,
-        Func<bool> isPluginConnected, Action pingPlugin, Action<bool> suspendHotkeys)
+        Func<bool> isPluginConnected, Action pingPlugin, Action<bool> suspendHotkeys, Action stopRecording)
     {
         _settings = settings;
         _startCapture = startCapture;
@@ -44,10 +46,11 @@ public partial class MainWindow : Window
         _isPluginConnected = isPluginConnected;
         _pingPlugin = pingPlugin;
         _suspendHotkeys = suspendHotkeys;
+        _stopRecording = stopRecording;
         InitializeComponent();
 
         FooterSnapshotButton.Content = CaptureIcons.ScanCamera();
-        FooterRecordButton.Content = CaptureIcons.Record();
+        SetRecording(false);
 
         WireEvents();
         LoadFromSettings();
@@ -89,6 +92,7 @@ public partial class MainWindow : Window
         VidModeWindow.Checked += (_, _) => Persist();
         VidModeCustom.Checked += (_, _) => Persist();
         VidCursorSwitch.Click += (_, _) => Persist();
+        VidClipboardSwitch.Click += (_, _) => Persist();
         FpsSlider.ValueChanged += (_, _) => { FpsValue.Text = $"{(int)FpsSlider.Value} fps"; Persist(); };
         QualitySlider.ValueChanged += (_, _) => { QualityValue.Text = $"{(int)QualitySlider.Value}"; Persist(); };
         VidOpenLibrary.Click += (_, _) => OpenInExplorer(_settings.ResolveLibraryFolder());
@@ -104,14 +108,16 @@ public partial class MainWindow : Window
         FfmpegStatus.MouseLeftButtonUp += (_, _) => OpenFfmpegFolder();
 
         HotkeysMasterSwitch.Click += (_, _) => { Persist(); UpdateHotkeyEnabled(); };
+        PickerHotkeySwitch.Click += (_, _) => Persist();
         SnapHotkeySwitch.Click += (_, _) => Persist();
         RecHotkeySwitch.Click += (_, _) => Persist();
+        PickerHotkeyChange.Click += (_, _) => BeginCaptureHotkey("picker");
         SnapHotkeyChange.Click += (_, _) => BeginCaptureHotkey("snap");
         RecHotkeyChange.Click += (_, _) => BeginCaptureHotkey("rec");
         PreviewKeyDown += OnPreviewKeyDown;
 
         FooterSnapshotButton.Click += (_, _) => { Hide(); _startCapture(CaptureKind.Image); };
-        FooterRecordButton.Click += (_, _) => { Hide(); _startCapture(CaptureKind.Video); };
+        FooterRecordButton.Click += (_, _) => { if (_recording) _stopRecording(); else { Hide(); _startCapture(CaptureKind.Video); } };
         GitHubButton.Click += (_, _) => OpenUrl("https://github.com/Este2013/Snapture");
         QuitButton.Click += (_, _) => _quit();
     }
@@ -141,11 +147,13 @@ public partial class MainWindow : Window
         QualitySlider.Value = s.Quality;
         QualityValue.Text = $"{s.Quality}";
         VidCursorSwitch.IsChecked = s.CaptureCursor;
+        VidClipboardSwitch.IsChecked = s.VideoToClipboard;
 
         DefLastUsed.IsChecked = s.DefaultSnapKind == "lastused";
         DefSnapshot.IsChecked = s.DefaultSnapKind == "image";
         DefVideo.IsChecked = s.DefaultSnapKind == "video";
         HotkeysMasterSwitch.IsChecked = s.HotkeysEnabled;
+        PickerHotkeySwitch.IsChecked = s.PickerHotkey.Enabled;
         SnapHotkeySwitch.IsChecked = s.SnapshotHotkey.Enabled;
         RecHotkeySwitch.IsChecked = s.RecordHotkey.Enabled;
         LoadHotkeyText();
@@ -205,9 +213,11 @@ public partial class MainWindow : Window
         s.FrameRate = (int)FpsSlider.Value;
         s.Quality = (int)QualitySlider.Value;
         s.CaptureCursor = VidCursorSwitch.IsChecked == true;
+        s.VideoToClipboard = VidClipboardSwitch.IsChecked == true;
 
         s.DefaultSnapKind = DefSnapshot.IsChecked == true ? "image" : DefVideo.IsChecked == true ? "video" : "lastused";
         s.HotkeysEnabled = HotkeysMasterSwitch.IsChecked == true;
+        s.PickerHotkey.Enabled = PickerHotkeySwitch.IsChecked == true;
         s.SnapshotHotkey.Enabled = SnapHotkeySwitch.IsChecked == true;
         s.RecordHotkey.Enabled = RecHotkeySwitch.IsChecked == true;
 
@@ -223,6 +233,7 @@ public partial class MainWindow : Window
 
     private void LoadHotkeyText()
     {
+        PickerHotkeyText.Text = _settings.Current.PickerHotkey.Display;
         SnapHotkeyText.Text = _settings.Current.SnapshotHotkey.Display;
         RecHotkeyText.Text = _settings.Current.RecordHotkey.Display;
     }
@@ -230,15 +241,32 @@ public partial class MainWindow : Window
     private void UpdateHotkeyEnabled()
     {
         bool on = HotkeysMasterSwitch.IsChecked == true;
-        foreach (var c in new UIElement[] { SnapHotkeySwitch, SnapHotkeyChange, RecHotkeySwitch, RecHotkeyChange })
+        foreach (var c in new UIElement[]
+        {
+            PickerHotkeySwitch, PickerHotkeyChange, SnapHotkeySwitch, SnapHotkeyChange, RecHotkeySwitch, RecHotkeyChange,
+        })
             c.IsEnabled = on;
     }
+
+    private HotkeyBinding CapturingBinding() => _capturingHotkey switch
+    {
+        "picker" => _settings.Current.PickerHotkey,
+        "snap" => _settings.Current.SnapshotHotkey,
+        _ => _settings.Current.RecordHotkey,
+    };
+
+    private TextBlock CapturingText() => _capturingHotkey switch
+    {
+        "picker" => PickerHotkeyText,
+        "snap" => SnapHotkeyText,
+        _ => RecHotkeyText,
+    };
 
     private void BeginCaptureHotkey(string which)
     {
         _capturingHotkey = which;
         _suspendHotkeys(true); // so pressing the current hotkey doesn't fire it mid-capture
-        (which == "snap" ? SnapHotkeyText : RecHotkeyText).Text = "Press keys…";
+        CapturingText().Text = "Press keys…";
     }
 
     private void OnPreviewKeyDown(object sender, WinInput.KeyEventArgs e)
@@ -254,7 +282,7 @@ public partial class MainWindow : Window
 
         int mods = ModsToWin32(WinInput.Keyboard.Modifiers);
         int vk = WinInput.KeyInterop.VirtualKeyFromKey(key);
-        var binding = _capturingHotkey == "snap" ? _settings.Current.SnapshotHotkey : _settings.Current.RecordHotkey;
+        var binding = CapturingBinding();
         binding.Modifiers = mods;
         binding.VirtualKey = vk;
         binding.Display = FormatHotkey(mods, key);
@@ -370,6 +398,24 @@ public partial class MainWindow : Window
             notes = sb.ToString().TrimEnd();
         }
         new ReleaseNotesWindow("Release notes", notes) { Owner = this }.ShowDialog();
+    }
+
+    /// <summary>Toggle the footer record button between "record" and "stop recording".</summary>
+    public void SetRecording(bool recording)
+    {
+        _recording = recording;
+        if (recording)
+        {
+            FooterRecordButton.Style = (Style)FindResource("RecordButton");
+            FooterRecordButton.Content = CaptureIcons.Stop();
+            FooterRecordButton.ToolTip = "Stop recording";
+        }
+        else
+        {
+            FooterRecordButton.Style = (Style)FindResource("FooterCaptureButton");
+            FooterRecordButton.Content = CaptureIcons.Record();
+            FooterRecordButton.ToolTip = "Start recording";
+        }
     }
 
     // ---- plugin connection indicator -------------------------------------

@@ -91,7 +91,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         BuildTray();
         _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
             IsPluginConnected, PingPlugin,
-            suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); });
+            suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); },
+            () => _ = StopAsync());
         StartControlServerIfEnabled();
         RegisterHotkeys();
 
@@ -115,10 +116,26 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _hotkeys.Clear();
         var s = _settings.Current;
         if (!s.HotkeysEnabled) return;
+        if (s.PickerHotkey.Enabled)
+            _hotkeys.Register((uint)s.PickerHotkey.VirtualKey, OnPickerHotkey, (uint)s.PickerHotkey.Modifiers);
         if (s.SnapshotHotkey.Enabled)
             _hotkeys.Register((uint)s.SnapshotHotkey.VirtualKey, OnSnapshotHotkey, (uint)s.SnapshotHotkey.Modifiers);
         if (s.RecordHotkey.Enabled)
             _hotkeys.Register((uint)s.RecordHotkey.VirtualKey, OnRecordHotkey, (uint)s.RecordHotkey.Modifiers);
+    }
+
+    /// <summary>The capture kind to default to (resolving "Last used").</summary>
+    private CaptureKind ResolveDefaultKind()
+    {
+        var d = _settings.Current.DefaultSnapKind;
+        if (d == "lastused") d = _settings.Current.LastUsedSnapKind;
+        return d == "image" ? CaptureKind.Image : CaptureKind.Video;
+    }
+
+    private void OnPickerHotkey()
+    {
+        if (_controller.State == RecordingState.Idle)
+            BeginSelection(ResolveDefaultKind(), null);
     }
 
     private void OnSnapshotHotkey()
@@ -162,7 +179,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
                 _ = StopAsync();
                 break;
             case RecordingState.Idle:
-                BeginSelection(CaptureKind.Video, null);
+                BeginSelection(ResolveDefaultKind(), null);
                 break;
             // Selecting/Encoding: ignore.
         }
@@ -192,7 +209,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     {
         _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
             IsPluginConnected, PingPlugin,
-            suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); });
+            suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); },
+            () => _ = StopAsync());
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
@@ -280,8 +298,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
                 _lastImagePath = result.OutputPath;
                 if (_settings.Current.SnapshotToClipboard && result.OutputPath is not null)
                     CopyImageToClipboard(result.OutputPath);
-                Notify("Snapshot saved",
-                    $"{Path.GetFileName(result.OutputPath)} — click to open", BalloonIcon.Info);
+                if (result.OutputPath is not null)
+                    ShowSnapshotBalloon(result.OutputPath);
                 if (_settings.Current.RevealAfterSave && result.OutputPath is not null)
                     Reveal(result.OutputPath);
             }
@@ -359,6 +377,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
                 };
             }
 
+            _mainWindow?.SetRecording(e.NewState == RecordingState.Recording);
+
             if (e.NewState == RecordingState.Idle)
             {
                 CloseOverlay();
@@ -378,6 +398,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             {
                 _lastSavedPath = result.OutputPath;
                 _lastVideoPath = result.OutputPath;
+                if (_settings.Current.VideoToClipboard && result.OutputPath is not null)
+                    CopyFileToClipboard(result.OutputPath);
                 Notify("Recording saved",
                     $"{Path.GetFileName(result.OutputPath)} ({FormatDuration(result.Duration)}) — click to open",
                     BalloonIcon.Info);
@@ -706,6 +728,55 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             Clipboard.SetImage(bmp);
         }
         catch { /* unsupported codec or clipboard busy */ }
+    }
+
+    /// <summary>Copy a saved file to the clipboard as a file drop (paste it in explorer/chat).</summary>
+    private static void CopyFileToClipboard(string path)
+    {
+        try
+        {
+            var files = new System.Collections.Specialized.StringCollection { path };
+            Clipboard.SetFileDropList(files);
+        }
+        catch { /* clipboard busy */ }
+    }
+
+    /// <summary>Tray toast for a saved snapshot, showing a thumbnail preview.</summary>
+    private void ShowSnapshotBalloon(string path)
+    {
+        if (_tray is null) return;
+        try
+        {
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.DecodePixelWidth = 240;
+            bmp.UriSource = new Uri(path);
+            bmp.EndInit();
+            bmp.Freeze();
+
+            var panel = new StackPanel { MaxWidth = 260 };
+            panel.Children.Add(new TextBlock { Text = "Snapshot saved", FontWeight = FontWeights.SemiBold, Foreground = Brushes.White });
+            panel.Children.Add(new TextBlock { Text = Path.GetFileName(path), Foreground = Brushes.LightGray, FontSize = 11, Margin = new Thickness(0, 0, 0, 6) });
+            panel.Children.Add(new Image { Source = bmp, Stretch = Stretch.Uniform, MaxHeight = 130 });
+
+            var border = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0x2B, 0x2B, 0x2B)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0x3B, 0x3B)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(12),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Child = panel,
+            };
+            border.MouseLeftButtonUp += (_, _) => { OpenFileWithApp(path); _tray.CloseBalloon(); };
+            _tray.ShowCustomBalloon(border, System.Windows.Controls.Primitives.PopupAnimation.Fade, 5000);
+        }
+        catch
+        {
+            Notify("Snapshot saved", Path.GetFileName(path) + " — click to open", BalloonIcon.Info);
+        }
     }
 
     /// <summary>Remember the last capture kind used (for the "Last used" default).</summary>

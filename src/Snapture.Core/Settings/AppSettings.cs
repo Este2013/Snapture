@@ -33,6 +33,9 @@ public sealed class AppSettings
     /// <summary>Capture the system cursor into the recording.</summary>
     public bool CaptureCursor { get; set; } = true;
 
+    /// <summary>Copy the finished recording's file to the clipboard (as a file drop).</summary>
+    public bool VideoToClipboard { get; set; } = true;
+
     // ---- Snapshot (still image) settings ---------------------------------
 
     /// <summary>Still-image format used when saving a snapshot.</summary>
@@ -75,6 +78,9 @@ public sealed class AppSettings
 
     /// <summary>Global hotkey for recording / stopping (default F7).</summary>
     public HotkeyBinding RecordHotkey { get; set; } = new() { VirtualKey = 0x76, Display = "F7" };
+
+    /// <summary>Global hotkey that opens the picker in the default snap mode (default F1).</summary>
+    public HotkeyBinding PickerHotkey { get; set; } = new() { VirtualKey = 0x70, Display = "F1" };
 
     /// <summary>Open the file location after a recording is saved.</summary>
     public bool RevealAfterSave { get; set; }
