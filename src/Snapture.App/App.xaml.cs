@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
+using Microsoft.Toolkit.Uwp.Notifications;
 
 namespace Snapture.App;
 
@@ -43,6 +45,17 @@ public partial class App : Application
 
         _controller = new AppController();
         _controller.Startup();
+
+        // Clicking a "saved" toast opens the captured file.
+        ToastNotificationManagerCompat.OnActivated += toastArgs =>
+        {
+            var args = ToastArguments.Parse(toastArgs.Argument);
+            if (args.TryGetValue("open", out var file))
+                Dispatcher.BeginInvoke(() =>
+                {
+                    try { Process.Start(new ProcessStartInfo(file) { UseShellExecute = true }); } catch { }
+                });
+        };
 
         // Listen for later launches asking us to surface the settings window.
         _showSettingsSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSettingsEventName);

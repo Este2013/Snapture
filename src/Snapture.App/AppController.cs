@@ -10,6 +10,7 @@ using Hardcodet.Wpf.TaskbarNotification;
 using Snapture.App.Interop;
 using Snapture.App.Tray;
 using Snapture.App.Views;
+using Snapture.Core.Encoding;
 using Snapture.Core.Ipc;
 using Snapture.Core.Models;
 using Snapture.Core.Recording;
@@ -299,7 +300,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
                 if (_settings.Current.SnapshotToClipboard && result.OutputPath is not null)
                     CopyImageToClipboard(result.OutputPath);
                 if (result.OutputPath is not null)
-                    ShowSnapshotBalloon(result.OutputPath);
+                    _ = ShowSavedToastAsync("Snapshot saved", Path.GetFileName(result.OutputPath), result.OutputPath);
                 if (_settings.Current.RevealAfterSave && result.OutputPath is not null)
                     Reveal(result.OutputPath);
             }
@@ -400,9 +401,9 @@ public sealed class AppController : IControlCommandHandler, IDisposable
                 _lastVideoPath = result.OutputPath;
                 if (_settings.Current.VideoToClipboard && result.OutputPath is not null)
                     CopyFileToClipboard(result.OutputPath);
-                Notify("Recording saved",
-                    $"{Path.GetFileName(result.OutputPath)} ({FormatDuration(result.Duration)}) — click to open",
-                    BalloonIcon.Info);
+                if (result.OutputPath is not null)
+                    _ = ShowSavedToastAsync("Recording saved",
+                        $"{Path.GetFileName(result.OutputPath)} ({FormatDuration(result.Duration)})", result.OutputPath);
                 if (_settings.Current.RevealAfterSave && result.OutputPath is not null)
                     Reveal(result.OutputPath);
             }
@@ -741,43 +742,21 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         catch { /* clipboard busy */ }
     }
 
-    /// <summary>Tray toast for a saved snapshot, showing a thumbnail preview.</summary>
-    private void ShowSnapshotBalloon(string path)
+    /// <summary>Show a native "saved" toast with a preview image (a video thumbnail for recordings).</summary>
+    private async Task ShowSavedToastAsync(string title, string message, string path)
     {
-        if (_tray is null) return;
-        try
+        var thumb = await Thumbnailer.CreateAsync(path);
+        // Fall back to the file itself for images if a thumbnail couldn't be made.
+        var image = thumb ?? (IsImageFile(path) ? path : null);
+        _ = _dispatcher.BeginInvoke(() =>
         {
-            var bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.DecodePixelWidth = 240;
-            bmp.UriSource = new Uri(path);
-            bmp.EndInit();
-            bmp.Freeze();
-
-            var panel = new StackPanel { MaxWidth = 260 };
-            panel.Children.Add(new TextBlock { Text = "Snapshot saved", FontWeight = FontWeights.SemiBold, Foreground = Brushes.White });
-            panel.Children.Add(new TextBlock { Text = Path.GetFileName(path), Foreground = Brushes.LightGray, FontSize = 11, Margin = new Thickness(0, 0, 0, 6) });
-            panel.Children.Add(new Image { Source = bmp, Stretch = Stretch.Uniform, MaxHeight = 130 });
-
-            var border = new Border
-            {
-                Background = new SolidColorBrush(Color.FromRgb(0x2B, 0x2B, 0x2B)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0x3B, 0x3B)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(12),
-                Cursor = System.Windows.Input.Cursors.Hand,
-                Child = panel,
-            };
-            border.MouseLeftButtonUp += (_, _) => { OpenFileWithApp(path); _tray.CloseBalloon(); };
-            _tray.ShowCustomBalloon(border, System.Windows.Controls.Primitives.PopupAnimation.Fade, 5000);
-        }
-        catch
-        {
-            Notify("Snapshot saved", Path.GetFileName(path) + " — click to open", BalloonIcon.Info);
-        }
+            try { Notifications.ShowSaved(title, message, image, path); }
+            catch { Notify(title, $"{Path.GetFileName(path)} — click to open", BalloonIcon.Info); }
+        });
     }
+
+    private static bool IsImageFile(string path) =>
+        Path.GetExtension(path).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg" or ".gif";
 
     /// <summary>Remember the last capture kind used (for the "Last used" default).</summary>
     private void RememberKind(CaptureKind kind)
