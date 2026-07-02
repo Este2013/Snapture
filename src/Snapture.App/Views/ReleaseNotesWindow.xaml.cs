@@ -35,7 +35,6 @@ public partial class ReleaseNotesWindow : Window
 
         HeaderBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
         HeaderClose.Click += (_, _) => Close();
-        CloseButton.Click += (_, _) => Close();
         InstallButton.Click += async (_, _) => await InstallAsync();
     }
 
@@ -45,7 +44,6 @@ public partial class ReleaseNotesWindow : Window
 
         InstallButton.IsEnabled = false;
         HeaderClose.IsEnabled = false;
-        CloseButton.IsEnabled = false;
         DownloadProgress.Visibility = Visibility.Visible;
         StatusText.Text = "Downloading…";
 
@@ -66,7 +64,6 @@ public partial class ReleaseNotesWindow : Window
             StatusText.Text = "Update failed: " + ex.Message;
             InstallButton.IsEnabled = true;
             HeaderClose.IsEnabled = true;
-            CloseButton.IsEnabled = true;
             DownloadProgress.Visibility = Visibility.Collapsed;
         }
     }

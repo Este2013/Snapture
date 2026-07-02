@@ -55,9 +55,8 @@
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="CloseButton" Content="Close" Padding="16,8" />
                 <Button x:Name="InstallButton" Style="{StaticResource AccentButton}"
-                        Content="Install update" Padding="16,8" Margin="10,0,0,0" />
+                        Content="Install update" Padding="16,8" />
             </StackPanel>
         </Grid>
         </Grid>
