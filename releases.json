@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.2.3",
+      "date": "2026-07-02",
+      "notes": "- Update bell is now green and centered\n- Manually checking for updates opens the update dialog automatically when one is found\n- Install button matches the app's default accent color",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.2.3/Snapture-Setup-1.2.3.exe",
+      "sha256": "de85d9107987f00b77e9e26c50be34e5f4bf8143ab1554f57ffdbed3348fbbb1"
+    },
+    {
       "version": "1.2.2",
       "date": "2026-07-02",
       "notes": "- Settings window now opens on the General tab by default",
