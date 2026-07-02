@@ -371,8 +371,20 @@ public partial class MainWindow : Window
     private void ShowUpdateDialog()
     {
         if (_pendingUpdate is null) return;
-        new ReleaseNotesWindow($"Snapture {_pendingUpdate.Version}", _pendingUpdate.Notes ?? "",
-            _updater, _pendingUpdate) { Owner = this }.ShowDialog();
+        new ReleaseNotesWindow(
+            $"Snapture {_pendingUpdate.Version} is available",
+            _pendingUpdate.Notes ?? "",
+            _updater, _pendingUpdate,
+            subtitle: $"You have {ShortVersion(_updater.CurrentVersion)[1..]}") { Owner = this }.ShowDialog();
+    }
+
+    /// <summary>Open the update dialog (from the startup "update available" toast).</summary>
+    public async Task TriggerUpdateDialog()
+    {
+        if (_pendingUpdate is null)
+            await CheckForUpdatesAsync(manual: false);
+        if (_pendingUpdate is not null)
+            ShowUpdateDialog();
     }
 
     private async Task ShowReleaseNotesAsync()

@@ -7,6 +7,55 @@
     <SolidColorBrush x:Key="RecordAccentBrush" Color="{StaticResource RecordAccentColor}" />
     <SolidColorBrush x:Key="RecordAccentHoverBrush" Color="{StaticResource RecordAccentHoverColor}" />
 
+    <!-- Blue "update" accent. -->
+    <SolidColorBrush x:Key="UpdateBlueBrush" Color="#0A84FF" />
+    <SolidColorBrush x:Key="UpdateBlueHoverBrush" Color="#339CFF" />
+
+    <!-- Blue filled action button (e.g. "Install update"). -->
+    <Style x:Key="AccentButton" TargetType="Button">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{StaticResource UpdateBlueBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="14,7" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="b" Property="Background" Value="{StaticResource UpdateBlueHoverBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Blue filled icon button (the "update available" bell). -->
+    <Style x:Key="AccentIconButton" TargetType="Button">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{StaticResource UpdateBlueBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="5" Padding="7,6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="b" Property="Background" Value="{StaticResource UpdateBlueHoverBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Red "Record" / "Stop" button. Everything else uses default Fluent buttons. -->
     <Style x:Key="RecordButton" TargetType="Button">
         <Setter Property="Foreground" Value="White" />

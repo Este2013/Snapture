@@ -16,6 +16,7 @@ using Snapture.Core.Models;
 using Snapture.Core.Recording;
 using Snapture.Core.Settings;
 using Snapture.Core.Snapshot;
+using Snapture.Core.Update;
 
 namespace Snapture.App;
 
@@ -97,11 +98,43 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         StartControlServerIfEnabled();
         RegisterHotkeys();
 
-        Notify("Snapture is running", "It stays in the tray — click the icon to capture, or F6/F7.", BalloonIcon.Info);
+        _ = ShowStartupNoticeAsync();
+    }
+
+    /// <summary>
+    /// On launch: if an update is available, show an "Update available" toast
+    /// (clicking it opens the update dialog); otherwise a "running in background" note.
+    /// </summary>
+    private async Task ShowStartupNoticeAsync()
+    {
+        var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0, 0);
+        var updater = new UpdateService(v);
+        var manifest = await updater.FetchManifestAsync();
+        var newer = manifest is null ? null : updater.FindNewer(manifest);
+
+        _ = _dispatcher.BeginInvoke(() =>
+        {
+            if (newer is not null)
+            {
+                try { Notifications.ShowUpdate(newer.Version, $"{v.Major}.{v.Minor}.{v.Build}"); }
+                catch { Notify("Update available", $"Snapture {newer.Version} is ready to install.", BalloonIcon.Info); }
+            }
+            else
+            {
+                Notify("Snapture is running", "It stays in the tray — click the icon to capture, or F6/F7.", BalloonIcon.Info);
+            }
+        });
     }
 
     /// <summary>Bring up the settings window (used when a second launch pokes this instance).</summary>
     public void ShowSettingsWindow() => ShowSettings();
+
+    /// <summary>Show the settings window and open the update dialog (from the update toast).</summary>
+    public void ShowUpdateDialogFromToast()
+    {
+        ShowSettings();
+        _ = _mainWindow?.TriggerUpdateDialog();
+    }
 
     private void RegisterHotkeys()
     {

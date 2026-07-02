@@ -25,4 +25,14 @@ internal static class Notifications
 
         builder.Show();
     }
+
+    /// <summary>Toast announcing an available update; clicking opens the update dialog.</summary>
+    public static void ShowUpdate(string newVersion, string currentVersion)
+    {
+        new ToastContentBuilder()
+            .AddText("Update available")
+            .AddText($"Snapture {newVersion} is ready to install — you have {currentVersion}.")
+            .AddArgument("action", "update")
+            .Show();
+    }
 }

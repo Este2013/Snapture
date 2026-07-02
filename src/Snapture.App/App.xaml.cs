@@ -50,7 +50,9 @@ public partial class App : Application
         ToastNotificationManagerCompat.OnActivated += toastArgs =>
         {
             var args = ToastArguments.Parse(toastArgs.Argument);
-            if (args.TryGetValue("open", out var file))
+            if (args.Contains("action") && args["action"] == "update")
+                Dispatcher.BeginInvoke(() => _controller?.ShowUpdateDialogFromToast());
+            else if (args.TryGetValue("open", out var file))
                 Dispatcher.BeginInvoke(() =>
                 {
                     try { Process.Start(new ProcessStartInfo(file) { UseShellExecute = true }); } catch { }

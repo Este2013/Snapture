@@ -16,10 +16,16 @@ public partial class ReleaseNotesWindow : Window
     private readonly UpdateService? _updater;
     private readonly ReleaseInfo? _release;
 
-    public ReleaseNotesWindow(string title, string notes, UpdateService? updater = null, ReleaseInfo? release = null)
+    public ReleaseNotesWindow(string title, string notes, UpdateService? updater = null, ReleaseInfo? release = null,
+        string? subtitle = null)
     {
         InitializeComponent();
         TitleText.Text = title;
+        if (!string.IsNullOrWhiteSpace(subtitle))
+        {
+            SubtitleText.Text = subtitle;
+            SubtitleText.Visibility = Visibility.Visible;
+        }
         NotesText.Text = string.IsNullOrWhiteSpace(notes) ? "No release notes were provided." : notes;
 
         _updater = updater;

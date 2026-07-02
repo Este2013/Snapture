@@ -25,9 +25,13 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock x:Name="TitleText" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <StackPanel>
+                <TextBlock x:Name="TitleText" FontSize="18" FontWeight="SemiBold" />
+                <TextBlock x:Name="SubtitleText" FontSize="12" Margin="0,2,0,0" Visibility="Collapsed"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
             <Button x:Name="HeaderClose" Grid.Column="1" Style="{StaticResource IconButton}"
-                    Content="&#xE8BB;" ToolTip="Close" />
+                    Content="&#xE8BB;" ToolTip="Close" VerticalAlignment="Top" />
         </Grid>
 
         <Border Grid.Row="1" CornerRadius="6" Padding="14,12"
@@ -51,9 +55,9 @@
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="InstallButton" Style="{StaticResource RecordButton}"
-                        Content="Install update" Padding="16,8" />
-                <Button x:Name="CloseButton" Content="Close" Margin="10,0,0,0" Padding="16,8" />
+                <Button x:Name="CloseButton" Content="Close" Padding="16,8" />
+                <Button x:Name="InstallButton" Style="{StaticResource AccentButton}"
+                        Content="Install update" Padding="16,8" Margin="10,0,0,0" />
             </StackPanel>
         </Grid>
         </Grid>

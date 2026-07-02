@@ -47,9 +47,12 @@
                             Content="&#xE8A5;" ToolTip="View release notes" />
                     <Button x:Name="CheckUpdatesButton" Style="{StaticResource IconButton}"
                             Content="&#xE72C;" ToolTip="Check for updates" />
-                    <Button x:Name="UpdateBellButton" Style="{StaticResource IconButton}"
-                            Content="&#xE7ED;" Visibility="Collapsed"
-                            Foreground="{StaticResource RecordAccentBrush}" FontWeight="Bold" />
+                    <Button x:Name="UpdateBellButton" Style="{StaticResource AccentIconButton}" Visibility="Collapsed">
+                        <Viewbox Width="16" Height="16">
+                            <Path Fill="White"
+                                  Data="M12 2.4 A1.6 1.6 0 0 0 10.4 4 v.4 C7.9 5.1 6.3 7.2 6.3 9.8 v3.1 l-1.7 2.3 A1 1 0 0 0 5.4 19 H18.6 A1 1 0 0 0 19.4 15.2 L17.7 12.9 V9.8 C17.7 7.2 16.1 5.1 13.6 4.4 v-.4 A1.6 1.6 0 0 0 12 2.4 Z M9.7 20 a2.4 2.4 0 0 0 4.6 0 Z" />
+                        </Viewbox>
+                    </Button>
                     <Border Width="1" Height="20" Margin="6,0" VerticalAlignment="Center"
                             Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
                     <Button x:Name="CloseXButton" Style="{StaticResource IconButton}"
