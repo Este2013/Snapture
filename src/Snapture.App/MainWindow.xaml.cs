@@ -169,13 +169,10 @@ public partial class MainWindow : Window
         UpdateTab();
     }
 
-    /// <summary>Select the tab dictated by "Default snap mode" (re-applied on each open).</summary>
+    /// <summary>The settings window always opens on the General tab (re-applied on each open).</summary>
     private void SelectDefaultTab()
     {
-        var s = _settings.Current;
-        var kind = s.DefaultSnapKind == "lastused" ? s.LastUsedSnapKind : s.DefaultSnapKind;
-        if (kind == "image") TabSnapshot.IsChecked = true;
-        else TabVideo.IsChecked = true;
+        TabGeneral.IsChecked = true;
     }
 
     private void UpdateTab()
