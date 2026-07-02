@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.2.2",
+      "date": "2026-07-02",
+      "notes": "- Settings window now opens on the General tab by default",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.2.2/Snapture-Setup-1.2.2.exe",
+      "sha256": "48235dd1724c506570e257ab09435aad437911faf7595fb909666dc134cbd11a"
+    },
+    {
       "version": "1.2.1",
       "date": "2026-07-02",
       "notes": "- Update feed moved to GitHub Releases + raw manifest (no more Pages deploy dependency)\n- Update-available toast + blue install dialog\n- Native snapshot/recording toasts with preview\n- Stream Deck plugin support, global shortcuts, snapshot mode",
