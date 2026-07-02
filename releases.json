@@ -9,13 +9,6 @@
       "sha256": "d622868ce6d1b6f864d72abd5d7e0f57de5863f66937d710449a13a35d8567a5"
     },
     {
-      "version": "1.2.0",
-      "date": "2026-07-02",
-      "notes": "- Update-available toast + blue install dialog\n- Native snapshot/recording toasts with preview\n- Stream Deck plugin support, global shortcuts, snapshot mode, and more",
-      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.2.0/Snapture-Setup-1.2.0.exe",
-      "sha256": "279ca74a1320fd40af637e4d10d3611cd762048ba165381a86e1f5e7e00e36e3"
-    },
-    {
       "version": "1.1.0",
       "date": "2026-07-02",
       "notes": "- Snapshot mode with clipboard + preview toasts\n- Logical-area snap for custom selection\n- Display picker with live cursor\n- Stream Deck plugin support (displays/windows, repeat, open-last)\n- Global shortcuts (F1 picker, F6 snapshot, F7 record) — configurable\n- General settings tab, default snap mode, GPU-composited overlay",
