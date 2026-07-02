@@ -14,20 +14,6 @@
       "notes": "- Snapshot mode with clipboard + preview toasts\n- Logical-area snap for custom selection\n- Display picker with live cursor\n- Stream Deck plugin support (displays/windows, repeat, open-last)\n- Global shortcuts (F1 picker, F6 snapshot, F7 record) — configurable\n- General settings tab, default snap mode, GPU-composited overlay",
       "installerUrl": "https://este2013.github.io/Snapture/Snapture-Setup-1.1.0.exe",
       "sha256": "c7131f46afdb77a29864d333a09a25165d2a3905a0f55ef53e328bf6e1bf4db0"
-    },
-    {
-      "version": "1.0.1",
-      "date": "2026-07-01",
-      "notes": "- Display picker: hover to preview/select, target monitor always outlined, no flashing\n- Snapshot/record buttons share the toolbar icons\n- Global hotkeys: F6 snapshot, F7 record/stop\n- App icon (red ring)\n- Settings: GitHub link + Quit",
-      "installerUrl": "https://este2013.github.io/Snapture/Snapture-Setup-1.0.1.exe",
-      "sha256": "68df23fb6d3435c8335634527f31b6e0e8ceedce8c1cfe90e2ba3d13d7611ed6"
-    },
-    {
-      "version": "1.0.0",
-      "date": "2026-07-01",
-      "notes": "First release: video recording, snapshots, display picker, logical-area snap, and in-app updates.",
-      "installerUrl": "https://este2013.github.io/Snapture/Snapture-Setup-1.0.0.exe",
-      "sha256": "92d9110034a9f8b3b37ec6a608d08d8fd5ee59b847c159b7f1073adb2c08990b"
     }
   ]
 }
