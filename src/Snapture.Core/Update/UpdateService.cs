@@ -29,15 +29,20 @@ public sealed class UpdateManifest
 }
 
 /// <summary>
-/// Checks a static JSON manifest (hosted on the project's GitHub Pages branch)
-/// for a newer release and downloads its installer. Deliberately dependency-free:
-/// the manifest is plain JSON and the installer is a normal file download, so the
-/// whole update feed is just static files on Pages.
+/// Checks a static JSON manifest (served from the project's <c>gh-pages</c>
+/// branch) for a newer release and downloads its installer. Deliberately
+/// dependency-free: the manifest is plain JSON and the installer is a normal
+/// file download (a GitHub Release asset), so the whole update feed is just
+/// static files — no server or Pages build in the loop.
 /// </summary>
 public sealed class UpdateService
 {
-    /// <summary>Where the release manifest lives. Adjust if the Pages path changes.</summary>
-    public const string ManifestUrl = "https://este2013.github.io/Snapture/releases.json";
+    /// <summary>
+    /// Where the release manifest lives. Served straight off the <c>gh-pages</c>
+    /// branch via raw.githubusercontent so it needs no Pages build to go live;
+    /// the installers it points at are hosted as GitHub Release assets.
+    /// </summary>
+    public const string ManifestUrl = "https://raw.githubusercontent.com/Este2013/Snapture/gh-pages/releases.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
