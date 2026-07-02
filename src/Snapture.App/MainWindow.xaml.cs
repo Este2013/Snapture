@@ -354,6 +354,8 @@ public partial class MainWindow : Window
                 $"you currently have {ShortVersion(_updater.CurrentVersion)[1..]}";
             UpdateBellButton.Visibility = Visibility.Visible;
             CheckUpdatesButton.Visibility = Visibility.Collapsed;
+            // A manual check that turns up an update jumps straight to the dialog.
+            if (manual) ShowUpdateDialog();
         }
         else
         {

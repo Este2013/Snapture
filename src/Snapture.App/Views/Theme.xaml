@@ -7,14 +7,15 @@
     <SolidColorBrush x:Key="RecordAccentBrush" Color="{StaticResource RecordAccentColor}" />
     <SolidColorBrush x:Key="RecordAccentHoverBrush" Color="{StaticResource RecordAccentHoverColor}" />
 
-    <!-- Blue "update" accent. -->
-    <SolidColorBrush x:Key="UpdateBlueBrush" Color="#0A84FF" />
-    <SolidColorBrush x:Key="UpdateBlueHoverBrush" Color="#339CFF" />
+    <!-- Green "update available" accent (the bell). -->
+    <SolidColorBrush x:Key="UpdateGreenBrush" Color="#2F9E44" />
+    <SolidColorBrush x:Key="UpdateGreenHoverBrush" Color="#37B24D" />
 
-    <!-- Blue filled action button (e.g. "Install update"). -->
+    <!-- Filled action button ("Install update"): uses the app's default accent
+         fill, so it matches every other filled control (e.g. selected segments). -->
     <Style x:Key="AccentButton" TargetType="Button">
-        <Setter Property="Foreground" Value="White" />
-        <Setter Property="Background" Value="{StaticResource UpdateBlueBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="14,7" />
         <Setter Property="FontWeight" Value="SemiBold" />
@@ -27,7 +28,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="b" Property="Background" Value="{StaticResource UpdateBlueHoverBrush}" />
+                            <Setter TargetName="b" Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -35,10 +36,10 @@
         </Setter>
     </Style>
 
-    <!-- Blue filled icon button (the "update available" bell). -->
+    <!-- Green filled icon button (the "update available" bell). -->
     <Style x:Key="AccentIconButton" TargetType="Button">
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="Background" Value="{StaticResource UpdateBlueBrush}" />
+        <Setter Property="Background" Value="{StaticResource UpdateGreenBrush}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
@@ -48,7 +49,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="b" Property="Background" Value="{StaticResource UpdateBlueHoverBrush}" />
+                            <Setter TargetName="b" Property="Background" Value="{StaticResource UpdateGreenHoverBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
