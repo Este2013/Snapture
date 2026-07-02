@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Hardcodet.Wpf.TaskbarNotification;
 using Snapture.App.Interop;
@@ -63,7 +64,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
         _controller.StateChanged += OnStateChanged;
         _controller.RecordingCompleted += OnRecordingCompleted;
-        _settings.SettingsChanged += (_, _) => ApplyServerSetting();
+        _settings.SettingsChanged += (_, _) => { ApplyServerSetting(); ApplyHotkeys(); };
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _elapsedTimer.Tick += (_, _) =>
@@ -89,7 +90,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     {
         BuildTray();
         _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
-            IsPluginConnected, PingPlugin);
+            IsPluginConnected, PingPlugin,
+            suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); });
         StartControlServerIfEnabled();
         RegisterHotkeys();
     }
@@ -98,8 +100,20 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     {
         _hotkeys = new HotkeyService();
         _hotkeys.Initialize();
-        _hotkeys.Register(HotkeyService.VK_F6, OnSnapshotHotkey); // F6 → snapshot
-        _hotkeys.Register(HotkeyService.VK_F7, OnRecordHotkey);   // F7 → record / stop
+        ApplyHotkeys();
+    }
+
+    /// <summary>Re-register the global hotkeys from the current settings.</summary>
+    private void ApplyHotkeys()
+    {
+        if (_hotkeys is null) return;
+        _hotkeys.Clear();
+        var s = _settings.Current;
+        if (!s.HotkeysEnabled) return;
+        if (s.SnapshotHotkey.Enabled)
+            _hotkeys.Register((uint)s.SnapshotHotkey.VirtualKey, OnSnapshotHotkey, (uint)s.SnapshotHotkey.Modifiers);
+        if (s.RecordHotkey.Enabled)
+            _hotkeys.Register((uint)s.RecordHotkey.VirtualKey, OnRecordHotkey, (uint)s.RecordHotkey.Modifiers);
     }
 
     private void OnSnapshotHotkey()
@@ -172,7 +186,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private void ShowSettings()
     {
         _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
-            IsPluginConnected, PingPlugin);
+            IsPluginConnected, PingPlugin,
+            suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); });
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
@@ -229,6 +244,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
         var kind = overlay.Kind;
         CloseOverlay(); // dim disappears; the rest of the desktop is usable again
+        RememberKind(kind);
 
         if (kind == CaptureKind.Image)
         {
@@ -257,6 +273,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             {
                 _lastSavedPath = result.OutputPath;
                 _lastImagePath = result.OutputPath;
+                if (_settings.Current.SnapshotToClipboard && result.OutputPath is not null)
+                    CopyImageToClipboard(result.OutputPath);
                 Notify("Snapshot saved",
                     $"{Path.GetFileName(result.OutputPath)} — click to open", BalloonIcon.Info);
                 if (_settings.Current.RevealAfterSave && result.OutputPath is not null)
@@ -614,6 +632,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     /// <summary>Run an instant (no-overlay) capture of a resolved target, remembering it.</summary>
     private ControlResponse DoCapture(ControlCommand command, CaptureKind kind, CaptureTarget target)
     {
+        RememberKind(kind);
         if (kind == CaptureKind.Image)
         {
             _lastImageTarget = target;
@@ -666,6 +685,29 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     {
         try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
         catch { /* nothing sensible to do */ }
+    }
+
+    /// <summary>Copy a saved image onto the clipboard (best-effort; WebP may not decode).</summary>
+    private static void CopyImageToClipboard(string path)
+    {
+        try
+        {
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.UriSource = new Uri(path);
+            bmp.EndInit();
+            bmp.Freeze();
+            Clipboard.SetImage(bmp);
+        }
+        catch { /* unsupported codec or clipboard busy */ }
+    }
+
+    /// <summary>Remember the last capture kind used (for the "Last used" default).</summary>
+    private void RememberKind(CaptureKind kind)
+    {
+        _settings.Current.LastUsedSnapKind = kind == CaptureKind.Image ? "image" : "video";
+        _settings.Save(_settings.Current);
     }
 
     private static string? MostRecent(string? a, string? b)

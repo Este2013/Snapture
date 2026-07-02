@@ -121,8 +121,9 @@
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="track" Property="Background"
                                     Value="{DynamicResource AccentFillColorDefaultBrush}" />
-                            <Setter TargetName="track" Property="BorderBrush"
-                                    Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <!-- Drop the border stroke when on; the 1px stroke over the fill
+                                 leaves an anti-aliased hairline at the rounded corners. -->
+                            <Setter TargetName="track" Property="BorderThickness" Value="0" />
                             <Setter TargetName="thumb" Property="HorizontalAlignment" Value="Right" />
                             <Setter TargetName="thumb" Property="Margin" Value="0,0,4,0" />
                             <Setter TargetName="thumb" Property="Fill"

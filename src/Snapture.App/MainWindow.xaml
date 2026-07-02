@@ -9,268 +9,293 @@
         UseLayoutRounding="True"
         FontFamily="Segoe UI Variable Text, Segoe UI">
     <Window.Resources>
-        <!-- Shared column layout for a settings row: label left, value right. -->
         <Style x:Key="SettingLabel" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,8" />
         </Style>
     </Window.Resources>
 
-    <!-- Chromeless but framed: transparent window + a rounded, bordered card with
-         a drop shadow (the 12px margin leaves room for the shadow). -->
     <Border Margin="12" CornerRadius="10" Background="#FF1F1F1F"
             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
         <Border.Effect>
             <DropShadowEffect BlurRadius="18" ShadowDepth="0" Opacity="0.5" Color="Black" />
         </Border.Effect>
         <Grid Margin="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-
-        <!-- Header (also the drag surface for this undecorated window) -->
-        <Grid x:Name="HeaderBar" Grid.Row="0" Margin="0,0,0,18" Background="Transparent">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <StackPanel Grid.Column="0" Orientation="Horizontal">
-                <Ellipse Width="22" Height="22" Stroke="{StaticResource RecordAccentBrush}"
-                         StrokeThickness="3" VerticalAlignment="Center" />
-                <TextBlock Text="Snapture" FontSize="22" FontWeight="SemiBold"
-                           Margin="12,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
-
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <TextBlock x:Name="VersionText" VerticalAlignment="Center" Margin="0,0,6,0"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                <Button x:Name="ReleaseNotesButton" Style="{StaticResource IconButton}"
-                        Content="&#xE8A5;" ToolTip="View release notes" />
-                <Button x:Name="CheckUpdatesButton" Style="{StaticResource IconButton}"
-                        Content="&#xE72C;" ToolTip="Check for updates" />
-                <Button x:Name="UpdateBellButton" Style="{StaticResource IconButton}"
-                        Content="&#xE7ED;" Visibility="Collapsed"
-                        Foreground="{StaticResource RecordAccentBrush}" FontWeight="Bold" />
-                <Border Width="1" Height="20" Margin="6,0" VerticalAlignment="Center"
-                        Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
-                <Button x:Name="CloseXButton" Style="{StaticResource IconButton}"
-                        Content="&#xE8BB;" ToolTip="Close" />
-            </StackPanel>
-        </Grid>
-
-        <!-- Mode tabs -->
-        <Border Grid.Row="1" Style="{StaticResource SegmentedContainer}"
-                HorizontalAlignment="Stretch" Margin="0,0,0,16">
-            <UniformGrid Rows="1" Columns="2">
-                <RadioButton x:Name="TabSnapshot" Style="{StaticResource SegmentRadioButton}" GroupName="SettingsTab">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE722;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                   FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <TextBlock Text="Snapshot" VerticalAlignment="Center" />
-                    </StackPanel>
-                </RadioButton>
-                <RadioButton x:Name="TabVideo" Style="{StaticResource SegmentRadioButton}" GroupName="SettingsTab">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE714;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                   FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <TextBlock Text="Snapture" VerticalAlignment="Center" />
-                    </StackPanel>
-                </RadioButton>
-            </UniformGrid>
-        </Border>
-
-        <!-- Mode-specific settings -->
-        <Grid Grid.Row="2">
-            <!-- ===== Snapshot settings ===== -->
-            <Grid x:Name="SnapshotPanel">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="160" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Output format" Style="{StaticResource SettingLabel}" />
-                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SegmentedContainer}"
-                        Margin="0,8" HorizontalAlignment="Left">
-                    <UniformGrid Rows="1" Columns="3">
-                        <RadioButton x:Name="SnapFormatPng" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="SnapFormat" Content="PNG" MinWidth="76" />
-                        <RadioButton x:Name="SnapFormatJpeg" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="SnapFormat" Content="JPEG" MinWidth="76" />
-                        <RadioButton x:Name="SnapFormatWebp" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="SnapFormat" Content="WebP" MinWidth="76" />
-                    </UniformGrid>
-                </Border>
-
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Default capture mode" Style="{StaticResource SettingLabel}" />
-                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SegmentedContainer}"
-                        Margin="0,8" HorizontalAlignment="Left">
-                    <UniformGrid Rows="1" Columns="3">
-                        <RadioButton x:Name="SnapModeDisplay" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="SnapMode" Content="Display" MinWidth="84" />
-                        <RadioButton x:Name="SnapModeWindow" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="SnapMode" Content="Window" MinWidth="84" />
-                        <RadioButton x:Name="SnapModeCustom" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="SnapMode" Content="Custom" MinWidth="84" />
-                    </UniformGrid>
-                </Border>
-
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Capture mouse cursor" Style="{StaticResource SettingLabel}" />
-                <CheckBox Grid.Row="2" Grid.Column="1" x:Name="SnapCursorSwitch"
-                          Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" Margin="0,8" />
-
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="Library folder" VerticalAlignment="Top" Margin="0,12" />
-                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,8" HorizontalAlignment="Left">
-                    <TextBlock x:Name="SnapLibraryPathText" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" />
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button x:Name="SnapOpenLibrary" Content="Open" />
-                        <Button x:Name="SnapChangeLibrary" Content="Change…" Margin="8,0,0,0" />
-                        <Button x:Name="SnapResetLibrary" Content="Use default" Margin="8,0,0,0" />
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
-
-            <!-- ===== Video (Snapture) settings ===== -->
-            <Grid x:Name="VideoPanel" Visibility="Collapsed">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="160" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Output format" Style="{StaticResource SettingLabel}" />
-                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SegmentedContainer}"
-                        Margin="0,8" HorizontalAlignment="Left">
-                    <UniformGrid Rows="1" Columns="3">
-                        <RadioButton x:Name="VidFormatMp4" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="VidFormat" Content="MP4" MinWidth="76" />
-                        <RadioButton x:Name="VidFormatWebp" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="VidFormat" Content="WebP" MinWidth="76" />
-                        <RadioButton x:Name="VidFormatGif" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="VidFormat" Content="GIF" MinWidth="76" />
-                    </UniformGrid>
-                </Border>
-
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Default capture mode" Style="{StaticResource SettingLabel}" />
-                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SegmentedContainer}"
-                        Margin="0,8" HorizontalAlignment="Left">
-                    <UniformGrid Rows="1" Columns="3">
-                        <RadioButton x:Name="VidModeDisplay" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="VidMode" Content="Display" MinWidth="84" />
-                        <RadioButton x:Name="VidModeWindow" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="VidMode" Content="Window" MinWidth="84" />
-                        <RadioButton x:Name="VidModeCustom" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="VidMode" Content="Custom" MinWidth="84" />
-                    </UniformGrid>
-                </Border>
-
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Frame rate" Style="{StaticResource SettingLabel}" />
-                <Grid Grid.Row="2" Grid.Column="1" Margin="0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Slider x:Name="FpsSlider" Grid.Column="0" Minimum="5" Maximum="60"
-                            TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
-                    <TextBlock x:Name="FpsValue" Grid.Column="1" MinWidth="56" TextAlignment="Right"
-                               VerticalAlignment="Center" Margin="12,0,0,0" />
-                </Grid>
-
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="Quality" Style="{StaticResource SettingLabel}" />
-                <Grid Grid.Row="3" Grid.Column="1" Margin="0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Slider x:Name="QualitySlider" Grid.Column="0" Minimum="0" Maximum="100"
-                            TickFrequency="10" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
-                    <TextBlock x:Name="QualityValue" Grid.Column="1" MinWidth="56" TextAlignment="Right"
-                               VerticalAlignment="Center" Margin="12,0,0,0" />
-                </Grid>
-
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="Capture mouse cursor" Style="{StaticResource SettingLabel}" />
-                <CheckBox Grid.Row="4" Grid.Column="1" x:Name="VidCursorSwitch"
-                          Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" Margin="0,8" />
-
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="Library folder" VerticalAlignment="Top" Margin="0,12" />
-                <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,8" HorizontalAlignment="Left">
-                    <TextBlock x:Name="VidLibraryPathText" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" />
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button x:Name="VidOpenLibrary" Content="Open" />
-                        <Button x:Name="VidChangeLibrary" Content="Change…" Margin="8,0,0,0" />
-                        <Button x:Name="VidResetLibrary" Content="Use default" Margin="8,0,0,0" />
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
-        </Grid>
-
-        <!-- Shared settings -->
-        <Grid Grid.Row="3" Margin="0,16,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="160" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Stream Deck server" VerticalAlignment="Center" Margin="0,12" />
-            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,8" HorizontalAlignment="Left">
-                <CheckBox x:Name="ServerCheck" Content="Enable on port" VerticalAlignment="Center" />
-                <TextBox x:Name="PortBox" Width="80" Margin="10,0,0,0" VerticalAlignment="Center" />
-                <Button x:Name="PluginStatusButton" Style="{StaticResource IconButton}" Margin="12,0,0,0"
-                        VerticalAlignment="Center" ToolTipService.ShowOnDisabled="True" />
-                <Button x:Name="PluginGitHubButton" Style="{StaticResource IconButton}" VerticalAlignment="Center"
-                        ToolTip="Open the Stream Deck plugin on GitHub">
-                    <Viewbox Width="16" Height="16">
-                        <Path Fill="{DynamicResource TextFillColorSecondaryBrush}"
-                              Data="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-                    </Viewbox>
-                </Button>
-            </StackPanel>
+            <!-- Header (drag surface) -->
+            <Grid x:Name="HeaderBar" Grid.Row="0" Margin="0,0,0,18" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Ellipse Width="22" Height="22" Stroke="{StaticResource RecordAccentBrush}"
+                             StrokeThickness="3" VerticalAlignment="Center" />
+                    <TextBlock Text="Snapture" FontSize="22" FontWeight="SemiBold"
+                               Margin="12,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="VersionText" VerticalAlignment="Center" Margin="0,0,6,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <Button x:Name="ReleaseNotesButton" Style="{StaticResource IconButton}"
+                            Content="&#xE8A5;" ToolTip="View release notes" />
+                    <Button x:Name="CheckUpdatesButton" Style="{StaticResource IconButton}"
+                            Content="&#xE72C;" ToolTip="Check for updates" />
+                    <Button x:Name="UpdateBellButton" Style="{StaticResource IconButton}"
+                            Content="&#xE7ED;" Visibility="Collapsed"
+                            Foreground="{StaticResource RecordAccentBrush}" FontWeight="Bold" />
+                    <Border Width="1" Height="20" Margin="6,0" VerticalAlignment="Center"
+                            Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                    <Button x:Name="CloseXButton" Style="{StaticResource IconButton}"
+                            Content="&#xE8BB;" ToolTip="Close" />
+                </StackPanel>
+            </Grid>
 
-            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" x:Name="FfmpegStatus"
-                       Margin="0,12,0,0" FontSize="12" TextTrimming="CharacterEllipsis"
-                       TextWrapping="NoWrap" Cursor="Hand" ToolTipService.InitialShowDelay="200"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-        </Grid>
+            <!-- Tabs -->
+            <Border Grid.Row="1" Style="{StaticResource SegmentedContainer}"
+                    HorizontalAlignment="Stretch" Margin="0,0,0,16">
+                <UniformGrid Rows="1" Columns="3">
+                    <RadioButton x:Name="TabGeneral" Style="{StaticResource SegmentRadioButton}"
+                                 GroupName="SettingsTab" Content="⚙ General" />
+                    <RadioButton x:Name="TabSnapshot" Style="{StaticResource SegmentRadioButton}" GroupName="SettingsTab">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE722;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="Snapshot" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="TabVideo" Style="{StaticResource SegmentRadioButton}" GroupName="SettingsTab">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE714;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="Snapture" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </RadioButton>
+                </UniformGrid>
+            </Border>
 
-        <!-- Footer -->
-        <Grid Grid.Row="4" Margin="0,24,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                <Button x:Name="GitHubButton" Style="{StaticResource IconButton}" ToolTip="Open the Snapture GitHub page">
-                    <Viewbox Width="18" Height="18">
-                        <Path Fill="{DynamicResource TextFillColorSecondaryBrush}"
-                              Data="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-                    </Viewbox>
-                </Button>
-                <Button x:Name="QuitButton" Content="Quit" Margin="8,0,0,0" Padding="18,8"
-                        ToolTip="Quit Snapture completely — stops recording/hotkeys and removes the tray icon" />
+            <!-- Tab content -->
+            <Grid Grid.Row="2">
+
+                <!-- ===== General ===== -->
+                <StackPanel x:Name="GeneralPanel">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Default snap mode" Style="{StaticResource SettingLabel}" />
+                        <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SegmentedContainer}" Margin="0,8" HorizontalAlignment="Left">
+                            <UniformGrid Rows="1" Columns="3">
+                                <RadioButton x:Name="DefLastUsed" Style="{StaticResource SegmentRadioButton}" GroupName="DefKind" Content="Last used" MinWidth="84" />
+                                <RadioButton x:Name="DefSnapshot" Style="{StaticResource SegmentRadioButton}" GroupName="DefKind" Content="Snapshot" MinWidth="84" />
+                                <RadioButton x:Name="DefVideo" Style="{StaticResource SegmentRadioButton}" GroupName="DefKind" Content="Snapture" MinWidth="84" />
+                            </UniformGrid>
+                        </Border>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Stream Deck server" VerticalAlignment="Center" Margin="0,12" />
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,8" HorizontalAlignment="Left">
+                            <CheckBox x:Name="ServerCheck" Content="Enable on port" VerticalAlignment="Center" />
+                            <TextBox x:Name="PortBox" Width="80" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            <Button x:Name="PluginStatusButton" Style="{StaticResource IconButton}" Margin="12,0,0,0"
+                                    VerticalAlignment="Center" ToolTipService.ShowOnDisabled="True" />
+                            <Button x:Name="PluginGitHubButton" Style="{StaticResource IconButton}" VerticalAlignment="Center"
+                                    ToolTip="Open the Stream Deck plugin on GitHub">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Fill="{DynamicResource TextFillColorSecondaryBrush}"
+                                          Data="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Global shortcuts" VerticalAlignment="Top" Margin="0,12" />
+                        <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,8">
+                            <CheckBox x:Name="HotkeysMasterSwitch" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" />
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <CheckBox Grid.Row="0" Grid.Column="0" x:Name="SnapHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Snapshot" VerticalAlignment="Center" Margin="12,6,0,6" />
+                                <TextBlock Grid.Row="0" Grid.Column="2" x:Name="SnapHotkeyText" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <Button Grid.Row="0" Grid.Column="3" x:Name="SnapHotkeyChange" Content="Change" Padding="10,4" />
+                                <CheckBox Grid.Row="1" Grid.Column="0" x:Name="RecHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" Margin="0,8,0,0" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Record" VerticalAlignment="Center" Margin="12,14,0,6" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="RecHotkeyText" VerticalAlignment="Center" Margin="0,8,0,0"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <Button Grid.Row="1" Grid.Column="3" x:Name="RecHotkeyChange" Content="Change" Padding="10,4" Margin="0,8,0,0" />
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock x:Name="FfmpegStatus" Margin="0,14,0,0" FontSize="12" TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap" Cursor="Hand" ToolTipService.InitialShowDelay="200"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+
+                <!-- ===== Snapshot ===== -->
+                <Grid x:Name="SnapshotPanel" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Output format" Style="{StaticResource SettingLabel}" />
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SegmentedContainer}" Margin="0,8" HorizontalAlignment="Left">
+                        <UniformGrid Rows="1" Columns="3">
+                            <RadioButton x:Name="SnapFormatPng" Style="{StaticResource SegmentRadioButton}" GroupName="SnapFormat" Content="PNG" MinWidth="76" />
+                            <RadioButton x:Name="SnapFormatJpeg" Style="{StaticResource SegmentRadioButton}" GroupName="SnapFormat" Content="JPEG" MinWidth="76" />
+                            <RadioButton x:Name="SnapFormatWebp" Style="{StaticResource SegmentRadioButton}" GroupName="SnapFormat" Content="WebP" MinWidth="76" />
+                        </UniformGrid>
+                    </Border>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Default capture mode" Style="{StaticResource SettingLabel}" />
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SegmentedContainer}" Margin="0,8" HorizontalAlignment="Left">
+                        <UniformGrid Rows="1" Columns="3">
+                            <RadioButton x:Name="SnapModeDisplay" Style="{StaticResource SegmentRadioButton}" GroupName="SnapMode" Content="Display" MinWidth="84" />
+                            <RadioButton x:Name="SnapModeWindow" Style="{StaticResource SegmentRadioButton}" GroupName="SnapMode" Content="Window" MinWidth="84" />
+                            <RadioButton x:Name="SnapModeCustom" Style="{StaticResource SegmentRadioButton}" GroupName="SnapMode" Content="Custom" MinWidth="84" />
+                        </UniformGrid>
+                    </Border>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Capture mouse cursor" Style="{StaticResource SettingLabel}" />
+                    <CheckBox Grid.Row="2" Grid.Column="1" x:Name="SnapCursorSwitch" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" Margin="0,8" />
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Send to clipboard" Style="{StaticResource SettingLabel}" />
+                    <CheckBox Grid.Row="3" Grid.Column="1" x:Name="SnapClipboardSwitch" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" Margin="0,8" />
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Library folder" VerticalAlignment="Top" Margin="0,12" />
+                    <StackPanel Grid.Row="4" Grid.Column="1" Margin="0,8" HorizontalAlignment="Left">
+                        <TextBlock x:Name="SnapLibraryPathText" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button x:Name="SnapOpenLibrary" Content="Open" />
+                            <Button x:Name="SnapChangeLibrary" Content="Change…" Margin="8,0,0,0" />
+                            <Button x:Name="SnapResetLibrary" Content="Use default" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ===== Snapture (video) ===== -->
+                <Grid x:Name="VideoPanel" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Output format" Style="{StaticResource SettingLabel}" />
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SegmentedContainer}" Margin="0,8" HorizontalAlignment="Left">
+                        <UniformGrid Rows="1" Columns="3">
+                            <RadioButton x:Name="VidFormatMp4" Style="{StaticResource SegmentRadioButton}" GroupName="VidFormat" Content="MP4" MinWidth="76" />
+                            <RadioButton x:Name="VidFormatWebp" Style="{StaticResource SegmentRadioButton}" GroupName="VidFormat" Content="WebP" MinWidth="76" />
+                            <RadioButton x:Name="VidFormatGif" Style="{StaticResource SegmentRadioButton}" GroupName="VidFormat" Content="GIF" MinWidth="76" />
+                        </UniformGrid>
+                    </Border>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Default capture mode" Style="{StaticResource SettingLabel}" />
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SegmentedContainer}" Margin="0,8" HorizontalAlignment="Left">
+                        <UniformGrid Rows="1" Columns="3">
+                            <RadioButton x:Name="VidModeDisplay" Style="{StaticResource SegmentRadioButton}" GroupName="VidMode" Content="Display" MinWidth="84" />
+                            <RadioButton x:Name="VidModeWindow" Style="{StaticResource SegmentRadioButton}" GroupName="VidMode" Content="Window" MinWidth="84" />
+                            <RadioButton x:Name="VidModeCustom" Style="{StaticResource SegmentRadioButton}" GroupName="VidMode" Content="Custom" MinWidth="84" />
+                        </UniformGrid>
+                    </Border>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Frame rate" Style="{StaticResource SettingLabel}" />
+                    <Grid Grid.Row="2" Grid.Column="1" Margin="0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Slider x:Name="FpsSlider" Grid.Column="0" Minimum="5" Maximum="60"
+                                TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock x:Name="FpsValue" Grid.Column="1" MinWidth="56" TextAlignment="Right"
+                                   VerticalAlignment="Center" Margin="12,0,0,0" />
+                    </Grid>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Quality" Style="{StaticResource SettingLabel}" />
+                    <Grid Grid.Row="3" Grid.Column="1" Margin="0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Slider x:Name="QualitySlider" Grid.Column="0" Minimum="0" Maximum="100"
+                                TickFrequency="10" IsSnapToTickEnabled="True" VerticalAlignment="Center" />
+                        <TextBlock x:Name="QualityValue" Grid.Column="1" MinWidth="56" TextAlignment="Right"
+                                   VerticalAlignment="Center" Margin="12,0,0,0" />
+                    </Grid>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Capture mouse cursor" Style="{StaticResource SettingLabel}" />
+                    <CheckBox Grid.Row="4" Grid.Column="1" x:Name="VidCursorSwitch" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" Margin="0,8" />
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Library folder" VerticalAlignment="Top" Margin="0,12" />
+                    <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,8" HorizontalAlignment="Left">
+                        <TextBlock x:Name="VidLibraryPathText" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button x:Name="VidOpenLibrary" Content="Open" />
+                            <Button x:Name="VidChangeLibrary" Content="Change…" Margin="8,0,0,0" />
+                            <Button x:Name="VidResetLibrary" Content="Use default" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- Permanent footer -->
+            <StackPanel Grid.Row="3">
+                <Border Height="1" Margin="0,20,0,14" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                <Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <Button x:Name="GitHubButton" Style="{StaticResource IconButton}" ToolTip="Open the Snapture GitHub page">
+                            <Viewbox Width="18" Height="18">
+                                <Path Fill="{DynamicResource TextFillColorSecondaryBrush}"
+                                      Data="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                            </Viewbox>
+                        </Button>
+                        <Button x:Name="QuitButton" Content="Quit" Margin="8,0,0,0" Padding="16,8"
+                                ToolTip="Quit Snapture completely — stops recording/hotkeys and removes the tray icon" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="FooterSnapshotButton" Style="{StaticResource RecordButton}" Padding="14,8" ToolTip="Take a snapshot" />
+                        <Button x:Name="FooterRecordButton" Style="{StaticResource RecordButton}" Padding="14,8" Margin="10,0,0,0" ToolTip="Start recording" />
+                    </StackPanel>
+                </Grid>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="StartButton" Style="{StaticResource RecordButton}" Padding="18,8" />
-            </StackPanel>
-        </Grid>
         </Grid>
     </Border>
 </Window>

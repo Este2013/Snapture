@@ -44,6 +44,9 @@ public sealed class AppSettings
     /// <summary>Capture the system cursor into the snapshot.</summary>
     public bool SnapshotCaptureCursor { get; set; } = true;
 
+    /// <summary>Copy the snapshot to the system clipboard as soon as it's taken.</summary>
+    public bool SnapshotToClipboard { get; set; } = true;
+
     /// <summary>
     /// Where snapshots are written. Empty means the default (Pictures\Snapture),
     /// resolved at runtime.
@@ -56,8 +59,40 @@ public sealed class AppSettings
     /// <summary>Start the control server on launch.</summary>
     public bool EnableControlServer { get; set; } = true;
 
+    // ---- General ---------------------------------------------------------
+
+    /// <summary>Which capture kind the app defaults to: "lastused", "image", or "video".</summary>
+    public string DefaultSnapKind { get; set; } = "lastused";
+
+    /// <summary>The last capture kind used ("image" or "video"), for "Last used".</summary>
+    public string LastUsedSnapKind { get; set; } = "video";
+
+    /// <summary>Master switch for the global hotkeys.</summary>
+    public bool HotkeysEnabled { get; set; } = true;
+
+    /// <summary>Global hotkey for taking a snapshot (default F6).</summary>
+    public HotkeyBinding SnapshotHotkey { get; set; } = new() { VirtualKey = 0x75, Display = "F6" };
+
+    /// <summary>Global hotkey for recording / stopping (default F7).</summary>
+    public HotkeyBinding RecordHotkey { get; set; } = new() { VirtualKey = 0x76, Display = "F7" };
+
     /// <summary>Open the file location after a recording is saved.</summary>
     public bool RevealAfterSave { get; set; }
 
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
+}
+
+/// <summary>A configurable global hotkey: a Win32 modifier mask + virtual-key code.</summary>
+public sealed class HotkeyBinding
+{
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Win32 MOD_* mask (ALT=1, CONTROL=2, SHIFT=4, WIN=8); 0 = no modifier.</summary>
+    public int Modifiers { get; set; }
+
+    /// <summary>Virtual-key code (e.g. 0x75 = F6).</summary>
+    public int VirtualKey { get; set; }
+
+    /// <summary>Human-readable label, e.g. "Ctrl+Alt+F6".</summary>
+    public string Display { get; set; } = string.Empty;
 }

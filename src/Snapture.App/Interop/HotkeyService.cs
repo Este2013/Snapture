@@ -51,6 +51,16 @@ internal sealed class HotkeyService : IDisposable
         return true;
     }
 
+    /// <summary>Unregister all current hotkeys (keeps the message window for re-use).</summary>
+    public void Clear()
+    {
+        if (_source is null) return;
+        foreach (var id in _actions.Keys)
+            try { UnregisterHotKey(_source.Handle, id); } catch { }
+        _actions.Clear();
+        _nextId = 1;
+    }
+
     private nint WndProc(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
     {
         if (msg == WM_HOTKEY && _actions.TryGetValue((int)wParam, out var action))
