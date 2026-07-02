@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.2.4",
+      "date": "2026-07-02",
+      "notes": "- Removed the redundant Close button in the update dialog (the window X still closes it)",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.2.4/Snapture-Setup-1.2.4.exe",
+      "sha256": "9bce81d628ddf5bb1924fb08a38564816a78011a2330aa28e7ca170388ffba88"
+    },
+    {
       "version": "1.2.3",
       "date": "2026-07-02",
       "notes": "- Update bell is now green and centered\n- Manually checking for updates opens the update dialog automatically when one is found\n- Install button matches the app's default accent color",
