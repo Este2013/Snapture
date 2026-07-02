@@ -6,7 +6,7 @@
       "date": "2026-07-02",
       "notes": "- Update-available toast + blue install dialog\n- Native snapshot/recording toasts with preview\n- Stream Deck plugin support, global shortcuts, snapshot mode, and more",
       "installerUrl": "https://este2013.github.io/Snapture/Snapture-Setup-1.2.0.exe",
-      "sha256": "c5d99214bbc274b65e19ec8cc1261f752399994fbef98983a74a8762cf197d2e"
+      "sha256": "279ca74a1320fd40af637e4d10d3611cd762048ba165381a86e1f5e7e00e36e3"
     },
     {
       "version": "1.1.0",
