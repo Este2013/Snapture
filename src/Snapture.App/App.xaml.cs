@@ -5,15 +5,29 @@ namespace Snapture.App;
 
 public partial class App : Application
 {
+    private const string InstanceMutexName = "Snapture.SingleInstance";
+    private const string ShowSettingsEventName = "Snapture.ShowSettings";
+
     private Mutex? _singleInstance;
     private AppController? _controller;
+    private EventWaitHandle? _showSettingsSignal;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         // Single-instance guard: a tray utility should only run once.
-        _singleInstance = new Mutex(initiallyOwned: true, "Snapture.SingleInstance", out var isNew);
+        _singleInstance = new Mutex(initiallyOwned: true, InstanceMutexName, out var isNew);
         if (!isNew)
         {
+            // Already running: poke the live instance to show its settings, then exit.
+            try
+            {
+                if (EventWaitHandle.TryOpenExisting(ShowSettingsEventName, out var signal))
+                {
+                    signal.Set();
+                    signal.Dispose();
+                }
+            }
+            catch { /* best effort */ }
             Shutdown();
             return;
         }
@@ -29,11 +43,28 @@ public partial class App : Application
 
         _controller = new AppController();
         _controller.Startup();
+
+        // Listen for later launches asking us to surface the settings window.
+        _showSettingsSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSettingsEventName);
+        var listener = new Thread(() =>
+        {
+            while (true)
+            {
+                _showSettingsSignal.WaitOne();
+                Dispatcher.BeginInvoke(() => _controller?.ShowSettingsWindow());
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "Snapture.ShowSettingsSignal",
+        };
+        listener.Start();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         _controller?.Dispose();
+        _showSettingsSignal?.Dispose();
         _singleInstance?.ReleaseMutex();
         _singleInstance?.Dispose();
         base.OnExit(e);

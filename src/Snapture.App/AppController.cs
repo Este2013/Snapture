@@ -94,7 +94,12 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); });
         StartControlServerIfEnabled();
         RegisterHotkeys();
+
+        Notify("Snapture is running", "It stays in the tray — click the icon to capture, or F6/F7.", BalloonIcon.Info);
     }
+
+    /// <summary>Bring up the settings window (used when a second launch pokes this instance).</summary>
+    public void ShowSettingsWindow() => ShowSettings();
 
     private void RegisterHotkeys()
     {

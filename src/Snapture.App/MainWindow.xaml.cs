@@ -58,7 +58,7 @@ public partial class MainWindow : Window
         PluginStatusButton.Click += (_, _) => OnPluginStatusClick();
         _pluginPoll = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _pluginPoll.Tick += (_, _) => RefreshPluginStatus();
-        IsVisibleChanged += (_, _) => { if (IsVisible) { _pluginPoll.Start(); RefreshPluginStatus(); } else _pluginPoll.Stop(); };
+        IsVisibleChanged += (_, _) => { if (IsVisible) { SelectDefaultTab(); _pluginPoll.Start(); RefreshPluginStatus(); } else _pluginPoll.Stop(); };
         RefreshPluginStatus();
     }
 
@@ -154,16 +154,20 @@ public partial class MainWindow : Window
         ServerCheck.IsChecked = s.EnableControlServer;
         PortBox.Text = s.ControlServerPort.ToString();
 
-        // Default tab the first time the window is built.
-        if (TabGeneral.IsChecked != true && TabSnapshot.IsChecked != true && TabVideo.IsChecked != true)
-        {
-            var kind = s.DefaultSnapKind == "lastused" ? s.LastUsedSnapKind : s.DefaultSnapKind;
-            if (kind == "image") TabSnapshot.IsChecked = true; else TabVideo.IsChecked = true;
-        }
+        SelectDefaultTab();
 
         UpdateLibraryUi();
         _loading = false;
         UpdateTab();
+    }
+
+    /// <summary>Select the tab dictated by "Default snap mode" (re-applied on each open).</summary>
+    private void SelectDefaultTab()
+    {
+        var s = _settings.Current;
+        var kind = s.DefaultSnapKind == "lastused" ? s.LastUsedSnapKind : s.DefaultSnapKind;
+        if (kind == "image") TabSnapshot.IsChecked = true;
+        else TabVideo.IsChecked = true;
     }
 
     private void UpdateTab()
