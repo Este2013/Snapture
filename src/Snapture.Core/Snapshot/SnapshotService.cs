@@ -72,6 +72,45 @@ public sealed class SnapshotService
             : new SnapshotResult(false, null, "ffmpeg did not produce an output file.");
     }
 
+    /// <summary>
+    /// Encode a still from a pre-captured <see cref="FrozenScreen"/> by cropping
+    /// the target region out of it. Used by the interactive overlay so transient
+    /// popups captured at selection time survive into the saved image.
+    /// </summary>
+    public async Task<SnapshotResult> CaptureFromFrozenAsync(
+        CaptureTarget target, FrozenScreen frozen, ImageFormat? formatOverride = null)
+    {
+        var ffmpeg = FfmpegLocator.Resolve();
+        if (ffmpeg is null)
+            return new SnapshotResult(false, null,
+                "ffmpeg was not found. Bundle ffmpeg.exe next to the app or add it to PATH.");
+
+        var s = _settings.Current;
+        var format = formatOverride ?? s.SnapshotFormat;
+        var region = target.Region.ClampTo(
+            frozen.OriginX, frozen.OriginY,
+            frozen.OriginX + frozen.Width, frozen.OriginY + frozen.Height);
+
+        var pixels = frozen.Crop(region, out var width, out var height);
+        if (pixels is null)
+            return new SnapshotResult(false, null, "Capture region is too small.");
+
+        var outputPath = BuildOutputPath(format);
+        try
+        {
+            await EncodeAsync(ffmpeg, pixels, width, height, format, s.Quality, outputPath)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return new SnapshotResult(false, null, ex.Message);
+        }
+
+        return File.Exists(outputPath)
+            ? new SnapshotResult(true, outputPath, null)
+            : new SnapshotResult(false, null, "ffmpeg did not produce an output file.");
+    }
+
     private static async Task EncodeAsync(string ffmpeg, byte[] bgra, int width, int height,
         ImageFormat format, int quality, string outputPath)
     {

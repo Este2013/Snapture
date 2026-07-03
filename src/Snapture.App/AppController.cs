@@ -10,6 +10,7 @@ using Hardcodet.Wpf.TaskbarNotification;
 using Snapture.App.Interop;
 using Snapture.App.Tray;
 using Snapture.App.Views;
+using Snapture.Core.Capture;
 using Snapture.Core.Encoding;
 using Snapture.Core.Ipc;
 using Snapture.Core.Models;
@@ -38,6 +39,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private TaskbarIcon? _tray;
     private MainWindow? _mainWindow;
     private OverlayWindow? _overlay;
+    private FrozenScreen? _frozen; // frozen desktop for the current snapshot pick
     private RecordingBarWindow? _recordingBar;
 
     private readonly DispatcherTimer _elapsedTimer;
@@ -273,12 +275,46 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             ? _settings.Current.SnapshotCaptureMode
             : _settings.Current.DefaultCaptureMode);
 
-        _overlay = new OverlayWindow(kind, mode);
+        // Freeze the desktop for still captures *before* the overlay activates,
+        // so transient popups (menus, dropdowns) are preserved in pixels even
+        // though showing the overlay dismisses the live ones.
+        _frozen = kind == CaptureKind.Image ? CaptureFrozenDesktop() : null;
+
+        _overlay = new OverlayWindow(kind, mode, _frozen);
         _overlay.Confirmed += ConfirmAndStart;
         _overlay.Cancelled += () => _ = CancelAsync();
         _overlay.CaptureModeChanged += OnOverlayCaptureModeChanged;
         _overlay.Show();
         _overlay.Activate();
+    }
+
+    /// <summary>Grab the whole virtual desktop into a one-shot frozen frame.</summary>
+    private FrozenScreen? CaptureFrozenDesktop()
+    {
+        try
+        {
+            var (vx, vy, vw, vh) = NativeMethods.GetVirtualScreenPhysical();
+            var target = new CaptureTarget
+            {
+                Mode = CaptureMode.Display,
+                Region = new CaptureRegion(vx, vy, vw, vh),
+            };
+            using var source = new GdiFrameSource(target, _settings.Current.SnapshotCaptureCursor);
+            using var frame = source.Capture(TimeSpan.Zero);
+            if (frame is null) return null;
+            return new FrozenScreen
+            {
+                Pixels = frame.Pixels.ToArray(),
+                OriginX = vx,
+                OriginY = vy,
+                Width = source.Width,
+                Height = source.Height,
+            };
+        }
+        catch
+        {
+            return null; // fall back to a live grab
+        }
     }
 
     /// <summary>A mid-pick capture-mode change overrides the saved default for that kind.</summary>
@@ -300,13 +336,14 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             return;
 
         var kind = overlay.Kind;
+        var frozen = _frozen; _frozen = null;
         CloseOverlay(); // dim disappears; the rest of the desktop is usable again
         RememberKind(kind);
 
         if (kind == CaptureKind.Image)
         {
             _lastImageTarget = target;
-            _ = TakeSnapshotAsync(target);
+            _ = TakeSnapshotAsync(target, frozen: frozen);
         }
         else
         {
@@ -316,13 +353,18 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         }
     }
 
-    private async Task TakeSnapshotAsync(CaptureTarget target, ImageFormat? formatOverride = null)
+    private async Task TakeSnapshotAsync(CaptureTarget target, ImageFormat? formatOverride = null,
+        FrozenScreen? frozen = null)
     {
         // Snapshots don't drive the recording state machine; release the
         // Selecting state the overlay reserved so the app returns to Idle.
         await _controller.AbortAsync();
 
-        var result = await _snapshot.CaptureAsync(target, formatOverride);
+        // A frozen frame (from the interactive overlay) is cropped so any
+        // transient popups are preserved; otherwise fall back to a live grab.
+        var result = frozen is not null
+            ? await _snapshot.CaptureFromFrozenAsync(target, frozen, formatOverride)
+            : await _snapshot.CaptureAsync(target, formatOverride);
 
         _ = _dispatcher.BeginInvoke(() =>
         {
@@ -935,6 +977,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
     private void CloseOverlay()
     {
+        _frozen = null;
         if (_overlay is null) return;
         var o = _overlay; _overlay = null;
         try { o.Close(); } catch { }

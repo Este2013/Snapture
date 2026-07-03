@@ -48,6 +48,11 @@ public partial class OverlayWindow : Window
     private DimWindow? _dim;
     private const byte DimAlpha = 0x8C; // matches the previous #8C000000 shade
 
+    // Optional frozen-desktop backdrop (snapshot mode): shown below the dim so
+    // transient popups captured at selection time stay visible and capturable.
+    private readonly FrozenScreen? _frozen;
+    private FreezeWindow? _freeze;
+
     // Display-mode picker: a Windows-Settings-style map of all monitors.
     private DisplayMapControl? _displayMap;
     private MonitorInfo? _mapHoveredMonitor; // display tile the pointer is over, if any
@@ -81,11 +86,12 @@ public partial class OverlayWindow : Window
     private Point _toolbarDragOrigin;
     private double _toolbarStartLeft, _toolbarStartTop;
 
-    public OverlayWindow(CaptureKind kind, CaptureMode mode)
+    public OverlayWindow(CaptureKind kind, CaptureMode mode, FrozenScreen? frozen = null)
     {
         InitializeComponent();
         _kind = kind;
         _mode = mode;
+        _frozen = frozen;
         CreateHandles();
 
         WireToolbar(kind, mode);
@@ -268,6 +274,16 @@ public partial class OverlayWindow : Window
         NativeMethods.PlaceDirectlyBelow(_dim, this);
         _dim.ClearHole();
 
+        // Frozen-desktop backdrop, one layer further down: the dim shades it and
+        // the selection hole reveals it, so the pick behaves as usual while the
+        // frozen popups remain visible (and get captured from these pixels).
+        if (_frozen is not null)
+        {
+            _freeze = new FreezeWindow(_frozen);
+            _freeze.Show();
+            NativeMethods.PlaceDirectlyBelow(_freeze, _dim);
+        }
+
         if (!_renderHooked)
         {
             CompositionTarget.Rendering += OnRendering;
@@ -343,6 +359,8 @@ public partial class OverlayWindow : Window
         _snapTimer.Stop();
         var dim = _dim; _dim = null;
         try { dim?.Close(); } catch { }
+        var freeze = _freeze; _freeze = null;
+        try { freeze?.Close(); } catch { }
     }
 
     // ---- logical-area snap (Custom mode) ---------------------------------
