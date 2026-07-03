@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.2.5",
+      "date": "2026-07-03",
+      "notes": "- Snapshots now freeze the screen the moment you invoke them, so menus, dropdowns and other transient popups are captured instead of vanishing (like Snipaste)",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.2.5/Snapture-Setup-1.2.5.exe",
+      "sha256": "761ce234a972dc67f74204aceb53fa5084e42d76fb0075d90e57b627d0744910"
+    },
+    {
       "version": "1.2.4",
       "date": "2026-07-02",
       "notes": "- Removed the redundant Close button in the update dialog (the window X still closes it)",
