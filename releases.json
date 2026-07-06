@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.3.0",
+      "date": "2026-07-06",
+      "notes": "- New capture engine (Windows.Graphics.Capture): fixes custom .ani cursors rendering as a black box and periodic recording corruption\n- No-activate picker: dropdowns/menus in other apps stay open while you select\n- Picker keyboard & scroll: Enter/Esc, R / Shift+R to reload recent capture positions, Ctrl+Z/Y undo-redo, and scroll to grow/shrink a selection\n- New Picker settings tab: choose the toolbar position (corners or edges; sides go vertical)\n- Settings window flashes when re-opened while already visible",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.3.0/Snapture-Setup-1.3.0.exe",
+      "sha256": "ec59fa2dd4271366f8d33c58a02f8ca637eea7c81300cd1f362e004b72cd238e"
+    },
+    {
       "version": "1.2.5",
       "date": "2026-07-03",
       "notes": "- Snapshots now freeze the screen the moment you invoke them, so menus, dropdowns and other transient popups are captured instead of vanishing (like Snipaste)",
