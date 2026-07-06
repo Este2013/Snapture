@@ -15,6 +15,7 @@
         </Style>
     </Window.Resources>
 
+    <Grid>
     <Border Margin="12" CornerRadius="10" Background="#FF1F1F1F"
             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
         <Border.Effect>
@@ -63,7 +64,7 @@
             <!-- Tabs -->
             <Border Grid.Row="1" Style="{StaticResource SegmentedContainer}"
                     HorizontalAlignment="Stretch" Margin="0,0,0,16">
-                <UniformGrid Rows="1" Columns="3">
+                <UniformGrid Rows="1" Columns="4">
                     <RadioButton x:Name="TabGeneral" Style="{StaticResource SegmentRadioButton}" GroupName="SettingsTab">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
@@ -83,6 +84,13 @@
                             <TextBlock Text="&#xE714;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                        FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0" />
                             <TextBlock Text="Snapture" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="TabPicker" Style="{StaticResource SegmentRadioButton}" GroupName="SettingsTab">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE7A8;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="Picker" VerticalAlignment="Center" />
                         </StackPanel>
                     </RadioButton>
                 </UniformGrid>
@@ -292,6 +300,72 @@
                         </StackPanel>
                     </StackPanel>
                 </Grid>
+
+                <!-- ===== Picker ===== -->
+                <StackPanel x:Name="PickerPanel" Visibility="Collapsed">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Toolbar position" VerticalAlignment="Top" Margin="0,10" />
+                        <StackPanel Grid.Column="1" Margin="0,8">
+                            <!-- A little 'screen' with 8 anchor points; the sides make the bar vertical. -->
+                            <Border Width="150" Height="96" CornerRadius="6" HorizontalAlignment="Left"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <Grid Margin="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <RadioButton x:Name="PosTopLeft" GroupName="PickerPos" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" ToolTip="Top-left corner" />
+                                    <RadioButton x:Name="PosTopCenter" GroupName="PickerPos" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Top" ToolTip="Top edge" />
+                                    <RadioButton x:Name="PosTopRight" GroupName="PickerPos" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Top-right corner" />
+                                    <RadioButton x:Name="PosLeftCenter" GroupName="PickerPos" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip="Left edge (vertical bar)" />
+                                    <RadioButton x:Name="PosRightCenter" GroupName="PickerPos" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Right edge (vertical bar)" />
+                                    <RadioButton x:Name="PosBottomLeft" GroupName="PickerPos" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Bottom" ToolTip="Bottom-left corner" />
+                                    <RadioButton x:Name="PosBottomCenter" GroupName="PickerPos" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Bottom" ToolTip="Bottom edge" />
+                                    <RadioButton x:Name="PosBottomRight" GroupName="PickerPos" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" ToolTip="Bottom-right corner" />
+                                </Grid>
+                            </Border>
+                            <TextBlock Text="Left/right edges render the bar vertically." FontSize="12" Margin="0,8,0,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Height="1" Margin="0,16,0,12" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                    <TextBlock Text="Keyboard &amp; scroll" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <Grid x:Name="PickerCommands">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Enter" FontFamily="Consolas" Margin="0,4" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Confirm the capture" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Esc" FontFamily="Consolas" Margin="0,4" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Cancel" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="R" FontFamily="Consolas" Margin="0,4" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="Reload the last capture's position" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Shift+R" FontFamily="Consolas" Margin="0,4" />
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Step back through earlier capture positions" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl+Z / Ctrl+Y" FontFamily="Consolas" Margin="0,4" />
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="Undo / redo selection changes" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Scroll" FontFamily="Consolas" Margin="0,4" />
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="Before selecting: walk the UI-element tree · After: grow/shrink the rectangle" Margin="0,4" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Click / drag" FontFamily="Consolas" Margin="0,4" />
+                        <TextBlock Grid.Row="6" Grid.Column="1" Text="Snap to a UI area · drag for a custom rectangle" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Arrows" FontFamily="Consolas" Margin="0,4" />
+                        <TextBlock Grid.Row="7" Grid.Column="1" Text="Nudge / resize the selection (when focused)" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                </StackPanel>
             </Grid>
 
             <!-- Permanent footer -->
@@ -316,4 +390,8 @@
             </StackPanel>
         </Grid>
     </Border>
+    <!-- Attention flash when the settings window is re-invoked while already open. -->
+    <Border x:Name="FlashOverlay" Margin="12" CornerRadius="10"
+            Background="{StaticResource RecordAccentBrush}" Opacity="0" IsHitTestVisible="False" />
+    </Grid>
 </Window>

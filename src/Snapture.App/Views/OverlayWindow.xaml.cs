@@ -53,6 +53,18 @@ public partial class OverlayWindow : Window
     private readonly FrozenScreen? _frozen;
     private FreezeWindow? _freeze;
 
+    // Picker toolbar anchor + keyboard/scroll controls (the overlay never takes
+    // focus, so shortcuts arrive via a low-level hook).
+    private readonly PickerBarPosition _barPosition;
+    private readonly IReadOnlyList<CaptureRegion> _history;
+    private int _historyIndex = -1;
+    private PickerInputHook? _hook;
+
+    // Undo/redo of the selection rectangle (null = no selection).
+    private readonly Stack<CaptureRegion?> _undo = new();
+    private readonly Stack<CaptureRegion?> _redo = new();
+    private CaptureRegion? _dragUndoState;
+
     // Display-mode picker: a Windows-Settings-style map of all monitors.
     private DisplayMapControl? _displayMap;
     private MonitorInfo? _mapHoveredMonitor; // display tile the pointer is over, if any
@@ -86,12 +98,16 @@ public partial class OverlayWindow : Window
     private Point _toolbarDragOrigin;
     private double _toolbarStartLeft, _toolbarStartTop;
 
-    public OverlayWindow(CaptureKind kind, CaptureMode mode, FrozenScreen? frozen = null)
+    public OverlayWindow(CaptureKind kind, CaptureMode mode, FrozenScreen? frozen = null,
+        PickerBarPosition barPosition = PickerBarPosition.TopCenter,
+        IReadOnlyList<CaptureRegion>? history = null)
     {
         InitializeComponent();
         _kind = kind;
         _mode = mode;
         _frozen = frozen;
+        _barPosition = barPosition;
+        _history = history ?? Array.Empty<CaptureRegion>();
         // Never take foreground/activation: doing so dismisses transient popups
         // (menus, dropdowns) in the app being captured. We show no-activate and
         // route Enter/Esc via temporary global hotkeys instead of keyboard focus.
@@ -334,6 +350,13 @@ public partial class OverlayWindow : Window
         UpdateDisplayMap();
         RaiseTarget(); // set the action button's initial enabled state
         _snapTimer.Start();
+
+        // The overlay never takes focus, so keyboard shortcuts + wheel come via a
+        // low-level hook (and are swallowed so they don't reach the app underneath).
+        _hook = new PickerInputHook(Dispatcher,
+            onEnter: TriggerConfirm, onEsc: TriggerCancel,
+            onRetake: RetakeLast, onHistoryBack: HistoryBack,
+            onUndo: Undo, onRedo: Redo, onWheel: HandleWheel);
     }
 
     private void OnDisplayPicked(MonitorInfo m)
@@ -391,6 +414,8 @@ public partial class OverlayWindow : Window
         try { dim?.Close(); } catch { }
         var freeze = _freeze; _freeze = null;
         try { freeze?.Close(); } catch { }
+        var hook = _hook; _hook = null;
+        try { hook?.Dispose(); } catch { }
     }
 
     // ---- logical-area snap (Custom mode) ---------------------------------
@@ -438,14 +463,106 @@ public partial class OverlayWindow : Window
 
     private void OnMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        HandleWheel(e.Delta);
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// Wheel behaviour: before a selection exists, walk the snap tree (parent/child);
+    /// once a custom rectangle is committed, grow/shrink it from its centre.
+    /// </summary>
+    public void HandleWheel(int delta)
+    {
+        if (_mode == CaptureMode.Custom && (_model?.HasSelection ?? false))
+        {
+            int step = Math.Max(2, (int)Math.Round(8 * _scale));
+            RecordUndo(CurrentState());
+            _model!.Inflate(delta > 0 ? step : -step);
+            UpdateVisuals();
+            RaiseTarget();
+            return;
+        }
+
         if (!SnapEligible || _snapChain.Count == 0) return;
         // Wheel up → parent (larger area); wheel down → child (tighter area).
-        _snapIndex = e.Delta > 0
+        _snapIndex = delta > 0
             ? Math.Min(_snapIndex + 1, _snapChain.Count - 1)
             : Math.Max(_snapIndex - 1, 0);
         UpdateVisuals();
         RaiseTarget();
-        e.Handled = true;
+    }
+
+    // ---- undo / redo / history ------------------------------------------
+
+    private CaptureRegion? CurrentState() => (_model?.HasSelection ?? false) ? _model!.Region : null;
+
+    private void RecordUndo(CaptureRegion? before)
+    {
+        _undo.Push(before);
+        _redo.Clear();
+    }
+
+    private void RecordUndoIfChanged()
+    {
+        var now = CurrentState();
+        if (!Nullable.Equals(now, _dragUndoState))
+            RecordUndo(_dragUndoState);
+        _dragUndoState = now;
+    }
+
+    private void ApplyState(CaptureRegion? state)
+    {
+        EnsureCustomMode();
+        if (state is { } r) _model.Set(r); else _model.Clear();
+        _snapChain = Array.Empty<CaptureRegion>();
+        UpdateVisuals();
+        RaiseTarget();
+    }
+
+    /// <summary>Undo the last selection change.</summary>
+    public void Undo()
+    {
+        if (_undo.Count == 0) return;
+        _redo.Push(CurrentState());
+        ApplyState(_undo.Pop());
+    }
+
+    /// <summary>Redo the last undone selection change.</summary>
+    public void Redo()
+    {
+        if (_redo.Count == 0) return;
+        _undo.Push(CurrentState());
+        ApplyState(_redo.Pop());
+    }
+
+    /// <summary>R: load the most recent capture position into the picker.</summary>
+    public void RetakeLast() => LoadHistory(0);
+
+    /// <summary>Shift+R: step further back through captured positions.</summary>
+    public void HistoryBack() => LoadHistory(_historyIndex < 0 ? 0 : _historyIndex + 1);
+
+    private void LoadHistory(int index)
+    {
+        if (_history.Count == 0) return;
+        index = Math.Clamp(index, 0, _history.Count - 1);
+        _historyIndex = index;
+        RecordUndo(CurrentState());
+        EnsureCustomMode();
+        _model.Set(_history[index]);
+        _snapChain = Array.Empty<CaptureRegion>();
+        _dragUndoState = CurrentState();
+        UpdateVisuals();
+        RaiseTarget();
+    }
+
+    private void EnsureCustomMode()
+    {
+        if (_mode == CaptureMode.Custom) return;
+        _suppressModeEvents = true;
+        ModeCustom.IsChecked = true;
+        _suppressModeEvents = false;
+        _mode = CaptureMode.Custom;
+        UpdateDisplayMap();
     }
 
     /// <summary>Flush a pending visual update at most once per rendered frame.</summary>
@@ -470,6 +587,7 @@ public partial class OverlayWindow : Window
     {
         var (px, py) = ToPhysical(e.GetPosition(RootCanvas));
         _lastPx = px; _lastPy = py;
+        _dragUndoState = CurrentState(); // snapshot before this interaction changes it
 
         if (_mode != CaptureMode.Custom)
         {
@@ -594,6 +712,7 @@ public partial class OverlayWindow : Window
                 _snapChain = Array.Empty<CaptureRegion>();
                 _mouseHeldHandle = SelectionHandle.None;
             }
+            RecordUndoIfChanged();
             UpdateVisuals();
             RaiseTarget();
             return;
@@ -602,6 +721,7 @@ public partial class OverlayWindow : Window
         _dragging = false; _drawingNew = false;
         _mouseHeldHandle = SelectionHandle.None;
         ReleaseMouseCapture();
+        RecordUndoIfChanged();
         UpdateVisuals();
         RaiseTarget();
     }
@@ -761,12 +881,51 @@ public partial class OverlayWindow : Window
     private void PositionToolbar()
     {
         if (!_loaded || _toolbarMoved) return;
+
+        bool vertical = _barPosition is PickerBarPosition.LeftCenter or PickerBarPosition.RightCenter;
+        ApplyToolbarOrientation(vertical);
+
         Toolbar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var width = Toolbar.ActualWidth > 0 ? Toolbar.ActualWidth : Toolbar.DesiredSize.Width;
-        var (px, py, pw, _) = ActiveMonitorDip();
-        Canvas.SetLeft(Toolbar, px + (pw - width) / 2);
-        Canvas.SetTop(Toolbar, py + 14);
+        double w = Toolbar.DesiredSize.Width, h = Toolbar.DesiredSize.Height;
+        var (px, py, pw, ph) = ActiveMonitorDip();
+        const double m = 14;
+
+        double left = _barPosition switch
+        {
+            PickerBarPosition.TopLeft or PickerBarPosition.BottomLeft or PickerBarPosition.LeftCenter => px + m,
+            PickerBarPosition.TopRight or PickerBarPosition.BottomRight or PickerBarPosition.RightCenter => px + pw - w - m,
+            _ => px + (pw - w) / 2, // top/bottom centre
+        };
+        double top = _barPosition switch
+        {
+            PickerBarPosition.TopLeft or PickerBarPosition.TopCenter or PickerBarPosition.TopRight => py + m,
+            PickerBarPosition.BottomLeft or PickerBarPosition.BottomCenter or PickerBarPosition.BottomRight => py + ph - h - m,
+            _ => py + (ph - h) / 2, // left/right centre
+        };
+
+        Canvas.SetLeft(Toolbar, left);
+        Canvas.SetTop(Toolbar, top);
     }
+
+    /// <summary>Lay the toolbar out horizontally or vertically and re-space its groups.</summary>
+    private void ApplyToolbarOrientation(bool vertical)
+    {
+        var target = vertical ? Orientation.Vertical : Orientation.Horizontal;
+        if (ToolbarStack.Orientation == target && _toolbarOrientationApplied) return;
+        ToolbarStack.Orientation = target;
+        _toolbarOrientationApplied = true;
+
+        for (int i = 0; i < ToolbarStack.Children.Count; i++)
+        {
+            if (ToolbarStack.Children[i] is not FrameworkElement el) continue;
+            el.Margin = i == 0
+                ? new Thickness(0)
+                : vertical ? new Thickness(0, 10, 0, 0) : new Thickness(12, 0, 0, 0);
+            if (vertical) el.HorizontalAlignment = HorizontalAlignment.Center;
+        }
+    }
+
+    private bool _toolbarOrientationApplied;
 
     private void RaiseTarget()
     {

@@ -56,6 +56,25 @@ public sealed class SelectionModel
     public void Set(CaptureRegion region) =>
         Region = region.ClampTo(_vx, _vy, _vRight, _vBottom);
 
+    /// <summary>Drop the selection (back to no-selection state).</summary>
+    public void Clear() => Region = default;
+
+    /// <summary>Grow (positive) or shrink (negative) the rectangle from its centre, clamped.</summary>
+    public void Inflate(int delta)
+    {
+        if (!HasSelection) return;
+        int left = Region.X - delta, top = Region.Y - delta;
+        int right = Region.Right + delta, bottom = Region.Bottom + delta;
+
+        // Never collapse past a 2px minimum around the centre.
+        if (right - left < 2) { int cx = Region.X + Region.Width / 2; left = cx - 1; right = cx + 1; }
+        if (bottom - top < 2) { int cy = Region.Y + Region.Height / 2; top = cy - 1; bottom = cy + 1; }
+
+        left = Math.Max(left, _vx); top = Math.Max(top, _vy);
+        right = Math.Min(right, _vRight); bottom = Math.Min(bottom, _vBottom);
+        Region = new CaptureRegion(left, top, right - left, bottom - top);
+    }
+
     /// <summary>Move the whole rectangle by a pixel delta, clamped to bounds.</summary>
     public void MoveBy(int dx, int dy)
     {

@@ -70,6 +70,10 @@ public partial class MainWindow : Window
         TabGeneral.Checked += (_, _) => UpdateTab();
         TabSnapshot.Checked += (_, _) => UpdateTab();
         TabVideo.Checked += (_, _) => UpdateTab();
+        TabPicker.Checked += (_, _) => UpdateTab();
+
+        foreach (var r in new[] { PosTopLeft, PosTopCenter, PosTopRight, PosLeftCenter, PosRightCenter, PosBottomLeft, PosBottomCenter, PosBottomRight })
+            r.Checked += (_, _) => Persist();
 
         // Snapshot
         SnapFormatPng.Checked += (_, _) => Persist();
@@ -162,6 +166,8 @@ public partial class MainWindow : Window
         ServerCheck.IsChecked = s.EnableControlServer;
         PortBox.Text = s.ControlServerPort.ToString();
 
+        SetPickerPositionRadio(s.PickerBarPosition);
+
         SelectDefaultTab();
 
         UpdateLibraryUi();
@@ -180,6 +186,17 @@ public partial class MainWindow : Window
         GeneralPanel.Visibility = TabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SnapshotPanel.Visibility = TabSnapshot.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         VideoPanel.Visibility = TabVideo.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PickerPanel.Visibility = TabPicker.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>Briefly pulse a red wash over the window to draw attention.</summary>
+    public void FlashAttention()
+    {
+        var anim = new System.Windows.Media.Animation.DoubleAnimationUsingKeyFrames();
+        anim.KeyFrames.Add(new System.Windows.Media.Animation.LinearDoubleKeyFrame(0.0, System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.Zero)));
+        anim.KeyFrames.Add(new System.Windows.Media.Animation.LinearDoubleKeyFrame(0.5, System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(120))));
+        anim.KeyFrames.Add(new System.Windows.Media.Animation.LinearDoubleKeyFrame(0.0, System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(500))));
+        FlashOverlay.BeginAnimation(OpacityProperty, anim);
     }
 
     private ImageFormat SnapshotFormat() =>
@@ -222,8 +239,34 @@ public partial class MainWindow : Window
         if (int.TryParse(PortBox.Text, out var port) && port is > 0 and < 65536)
             s.ControlServerPort = port;
 
+        s.PickerBarPosition = SelectedPickerPosition();
+
         _settings.Save(s);
         UpdateLibraryUi();
+    }
+
+    // ---- picker toolbar position ----------------------------------------
+
+    private PickerBarPosition SelectedPickerPosition() =>
+        PosTopLeft.IsChecked == true ? PickerBarPosition.TopLeft
+        : PosTopRight.IsChecked == true ? PickerBarPosition.TopRight
+        : PosLeftCenter.IsChecked == true ? PickerBarPosition.LeftCenter
+        : PosRightCenter.IsChecked == true ? PickerBarPosition.RightCenter
+        : PosBottomLeft.IsChecked == true ? PickerBarPosition.BottomLeft
+        : PosBottomCenter.IsChecked == true ? PickerBarPosition.BottomCenter
+        : PosBottomRight.IsChecked == true ? PickerBarPosition.BottomRight
+        : PickerBarPosition.TopCenter;
+
+    private void SetPickerPositionRadio(PickerBarPosition p)
+    {
+        PosTopLeft.IsChecked = p == PickerBarPosition.TopLeft;
+        PosTopCenter.IsChecked = p == PickerBarPosition.TopCenter;
+        PosTopRight.IsChecked = p == PickerBarPosition.TopRight;
+        PosLeftCenter.IsChecked = p == PickerBarPosition.LeftCenter;
+        PosRightCenter.IsChecked = p == PickerBarPosition.RightCenter;
+        PosBottomLeft.IsChecked = p == PickerBarPosition.BottomLeft;
+        PosBottomCenter.IsChecked = p == PickerBarPosition.BottomCenter;
+        PosBottomRight.IsChecked = p == PickerBarPosition.BottomRight;
     }
 
     // ---- global shortcuts editing ----------------------------------------

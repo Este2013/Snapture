@@ -85,6 +85,9 @@ public sealed class AppSettings
     /// <summary>Open the file location after a recording is saved.</summary>
     public bool RevealAfterSave { get; set; }
 
+    /// <summary>Where the picker toolbar anchors on the active monitor.</summary>
+    public PickerBarPosition PickerBarPosition { get; set; } = PickerBarPosition.TopCenter;
+
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
 }
 

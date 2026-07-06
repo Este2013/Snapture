@@ -55,6 +55,10 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     // file for each capture kind. Not persisted across sessions (by design).
     private CaptureTarget? _lastImageTarget;
     private CaptureTarget? _lastVideoTarget;
+
+    // Recent capture regions (most-recent first) for the picker's R / Shift+R.
+    private readonly List<CaptureRegion> _captureHistory = new();
+    private const int CaptureHistoryMax = 20;
     private string? _lastImagePath;
     private string? _lastVideoPath;
 
@@ -243,6 +247,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
     private void ShowSettings()
     {
+        bool alreadyOpen = _mainWindow is { IsVisible: true };
         _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
             IsPluginConnected, PingPlugin,
             suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); },
@@ -250,6 +255,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
+        // Re-invoked while already up: flash to draw the eye back to it.
+        if (alreadyOpen) _mainWindow.FlashAttention();
     }
 
     private void OpenLibrary() => OpenInExplorer(_settings.ResolveLibraryFolder());
@@ -280,32 +287,23 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         // open through the pick and into the confirm-time grab. No frozen backdrop.
         _frozen = null;
 
-        _overlay = new OverlayWindow(kind, mode, _frozen);
+        _overlay = new OverlayWindow(kind, mode, _frozen,
+            _settings.Current.PickerBarPosition, _captureHistory.ToList());
         _overlay.Confirmed += ConfirmAndStart;
         _overlay.Cancelled += () => _ = CancelAsync();
         _overlay.CaptureModeChanged += OnOverlayCaptureModeChanged;
         _overlay.Show();
-
-        // A no-activate window gets no keyboard focus, so wire Enter/Esc as
-        // temporary global hotkeys for the duration of the pick.
-        RegisterPickerHotkeys();
+        // Keyboard/wheel shortcuts are handled inside the overlay via a low-level
+        // input hook (the window is intentionally non-activating / focus-free).
     }
 
-    private int _escHotkeyId, _enterHotkeyId;
-
-    private void RegisterPickerHotkeys()
+    private void RecordCaptureHistory(CaptureRegion region)
     {
-        var o = _overlay;
-        if (o is null || _hotkeys is null) return;
-        _escHotkeyId = _hotkeys.RegisterScoped(HotkeyService.VK_ESCAPE, () => o.TriggerCancel());
-        _enterHotkeyId = _hotkeys.RegisterScoped(HotkeyService.VK_RETURN, () => o.TriggerConfirm());
-    }
-
-    private void UnregisterPickerHotkeys()
-    {
-        _hotkeys?.Unregister(_escHotkeyId);
-        _hotkeys?.Unregister(_enterHotkeyId);
-        _escHotkeyId = _enterHotkeyId = 0;
+        if (region.IsEmpty) return;
+        _captureHistory.RemoveAll(r => r.Equals(region));
+        _captureHistory.Insert(0, region);
+        if (_captureHistory.Count > CaptureHistoryMax)
+            _captureHistory.RemoveRange(CaptureHistoryMax, _captureHistory.Count - CaptureHistoryMax);
     }
 
     /// <summary>Grab the whole virtual desktop into a one-shot frozen frame.</summary>
@@ -357,6 +355,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
         var kind = overlay.Kind;
         var frozen = _frozen; _frozen = null;
+        RecordCaptureHistory(target.Region);
         CloseOverlay(); // dim disappears; the rest of the desktop is usable again
         RememberKind(kind);
 
@@ -998,7 +997,6 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private void CloseOverlay()
     {
         _frozen = null;
-        UnregisterPickerHotkeys();
         if (_overlay is null) return;
         var o = _overlay; _overlay = null;
         try { o.Close(); } catch { }

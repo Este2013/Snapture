@@ -36,6 +36,22 @@ public enum CaptureMode
     Custom,
 }
 
+/// <summary>
+/// Where the picker's toolbar is anchored on the active monitor. The four
+/// edge-centre positions render the bar vertically; corners render it horizontally.
+/// </summary>
+public enum PickerBarPosition
+{
+    TopLeft,
+    TopCenter,
+    TopRight,
+    RightCenter,
+    BottomRight,
+    BottomCenter,
+    BottomLeft,
+    LeftCenter,
+}
+
 /// <summary>Lifecycle of the recording pipeline. Drives both the UI and IPC.</summary>
 public enum RecordingState
 {

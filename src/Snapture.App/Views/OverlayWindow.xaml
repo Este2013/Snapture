@@ -42,7 +42,7 @@
             <Border.Effect>
                 <DropShadowEffect BlurRadius="20" ShadowDepth="3" Opacity="0.55" Color="Black" />
             </Border.Effect>
-            <StackPanel Orientation="Horizontal">
+            <StackPanel x:Name="ToolbarStack" Orientation="Horizontal">
                 <!-- Drag handle: reorder dots (the whole bar is draggable; this is the affordance). -->
                 <UniformGrid Columns="2" Rows="3" Width="9" Height="14" VerticalAlignment="Center"
                              Margin="2,0,12,0" Cursor="SizeAll" ToolTip="Drag to move"
