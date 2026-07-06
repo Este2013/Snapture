@@ -34,6 +34,8 @@
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
     <!-- Native Action Center toasts (with images) for an unpackaged WPF app. -->
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
+    <!-- Direct3D 11 interop for the Windows.Graphics.Capture backend. -->
+    <PackageReference Include="Vortice.Direct3D11" Version="3.6.2" />
   </ItemGroup>
 
 </Project>

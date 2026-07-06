@@ -63,8 +63,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _dispatcher = Application.Current.Dispatcher;
         _settings = new SettingsService();
         _settings.Load();
-        _controller = new RecordingController(_settings);
-        _snapshot = new SnapshotService(_settings);
+        _controller = new RecordingController(_settings, global::Snapture.App.Capture.CaptureBackend.Create);
+        _snapshot = new SnapshotService(_settings, global::Snapture.App.Capture.CaptureBackend.Create);
 
         _controller.StateChanged += OnStateChanged;
         _controller.RecordingCompleted += OnRecordingCompleted;
