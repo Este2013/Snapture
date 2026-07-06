@@ -405,7 +405,7 @@
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl+Z / Ctrl+Y" FontFamily="Consolas" Margin="0,4" />
                         <TextBlock Grid.Row="4" Grid.Column="1" Text="Undo / redo selection changes" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <TextBlock Grid.Row="5" Grid.Column="0" Text="Scroll" FontFamily="Consolas" Margin="0,4" VerticalAlignment="Top" />
-                        <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"><Run Text="- before: walk the tree of UI elements" /><LineBreak /><Run Text="- after: grow / shrink the selection" /></TextBlock>
+                        <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"><Run Text="- before selection: walk the tree of UI elements" /><LineBreak /><Run Text="- after selection: grow / shrink it" /></TextBlock>
                         <TextBlock Grid.Row="6" Grid.Column="0" Text="Click / drag" FontFamily="Consolas" Margin="0,4" />
                         <TextBlock Grid.Row="6" Grid.Column="1" Text="Snap to a UI area · drag for a custom rectangle" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <TextBlock Grid.Row="7" Grid.Column="0" Text="Arrows" FontFamily="Consolas" Margin="0,4" />
