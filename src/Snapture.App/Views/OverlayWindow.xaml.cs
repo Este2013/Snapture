@@ -931,6 +931,10 @@ public partial class OverlayWindow : Window
         foreach (var b in new[] { ModeDisplay, ModeWindow, ModeCustom })
             b.MinWidth = vertical ? 46 : 78;
 
+        // Give the icon buttons room to breathe when stacked vertically.
+        foreach (var b in new[] { KindSnapshot, KindVideo, ModeDisplay, ModeWindow, ModeCustom })
+            b.Padding = vertical ? new Thickness(14, 12, 14, 12) : new Thickness(14, 6, 14, 6);
+
         // Rotate the drag dots so the handle still reads across a vertical bar.
         DragHandle.LayoutTransform = vertical ? new RotateTransform(90) : null;
 
