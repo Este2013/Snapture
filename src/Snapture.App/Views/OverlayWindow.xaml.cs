@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -355,7 +356,7 @@ public partial class OverlayWindow : Window
         // low-level hook (and are swallowed so they don't reach the app underneath).
         _hook = new PickerInputHook(Dispatcher,
             onEnter: TriggerConfirm, onEsc: TriggerCancel,
-            onRetake: RetakeLast, onHistoryBack: HistoryBack,
+            onRetake: HistoryOlder, onHistoryBack: HistoryNewer,
             onUndo: Undo, onRedo: Redo, onWheel: HandleWheel);
     }
 
@@ -535,16 +536,19 @@ public partial class OverlayWindow : Window
         ApplyState(_redo.Pop());
     }
 
-    /// <summary>R: load the most recent capture position into the picker.</summary>
-    public void RetakeLast() => LoadHistory(0);
+    /// <summary>R: step back in time — first press loads the most recent, then older.</summary>
+    public void HistoryOlder() =>
+        LoadHistory(_historyIndex < 0 ? 0 : _historyIndex + 1);
 
-    /// <summary>Shift+R: step further back through captured positions.</summary>
-    public void HistoryBack() => LoadHistory(_historyIndex < 0 ? 0 : _historyIndex + 1);
+    /// <summary>Shift+R: step forward in time (towards the most recent position).</summary>
+    public void HistoryNewer() =>
+        LoadHistory(_historyIndex < 0 ? 0 : _historyIndex - 1);
 
     private void LoadHistory(int index)
     {
         if (_history.Count == 0) return;
         index = Math.Clamp(index, 0, _history.Count - 1);
+        if (index == _historyIndex) return; // already showing this position
         _historyIndex = index;
         RecordUndo(CurrentState());
         EnsureCustomMode();
@@ -912,16 +916,41 @@ public partial class OverlayWindow : Window
     {
         var target = vertical ? Orientation.Vertical : Orientation.Horizontal;
         if (ToolbarStack.Orientation == target && _toolbarOrientationApplied) return;
-        ToolbarStack.Orientation = target;
         _toolbarOrientationApplied = true;
+        ToolbarStack.Orientation = target;
 
+        // Segmented groups stack their buttons along the bar's long axis.
+        KindGrid.Rows = vertical ? 2 : 1; KindGrid.Columns = vertical ? 1 : 2;
+        ModeGrid.Rows = vertical ? 3 : 1; ModeGrid.Columns = vertical ? 1 : 3;
+
+        // Vertical uses uniform icon buttons; horizontal keeps the text labels.
+        var iconVis = vertical ? Visibility.Visible : Visibility.Collapsed;
+        var textVis = vertical ? Visibility.Collapsed : Visibility.Visible;
+        ModeDisplayIcon.Visibility = ModeWindowIcon.Visibility = ModeCustomIcon.Visibility = iconVis;
+        ModeDisplayText.Visibility = ModeWindowText.Visibility = ModeCustomText.Visibility = textVis;
+        foreach (var b in new[] { ModeDisplay, ModeWindow, ModeCustom })
+            b.MinWidth = vertical ? 46 : 78;
+
+        // Rotate the drag dots so the handle still reads across a vertical bar.
+        DragHandle.LayoutTransform = vertical ? new RotateTransform(90) : null;
+
+        // Stack along the new axis; when vertical, make every group the same width.
         for (int i = 0; i < ToolbarStack.Children.Count; i++)
         {
             if (ToolbarStack.Children[i] is not FrameworkElement el) continue;
-            el.Margin = i == 0
-                ? new Thickness(0)
+            el.Margin = i == 0 ? new Thickness(0)
                 : vertical ? new Thickness(0, 10, 0, 0) : new Thickness(12, 0, 0, 0);
-            if (vertical) el.HorizontalAlignment = HorizontalAlignment.Center;
+            el.HorizontalAlignment = vertical ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
+        }
+        DragHandle.HorizontalAlignment = HorizontalAlignment.Center; // the handle itself stays centred
+
+        // Tooltips: instant, and anchored to the outward side of the bar at the
+        // hovered button's height (bar on the left → tooltips on the right).
+        var placement = _barPosition == PickerBarPosition.LeftCenter ? PlacementMode.Right : PlacementMode.Left;
+        foreach (FrameworkElement el in new FrameworkElement[] { KindSnapshot, KindVideo, ModeDisplay, ModeWindow, ModeCustom, RecordButton, CancelButton })
+        {
+            ToolTipService.SetInitialShowDelay(el, vertical ? 0 : 400);
+            ToolTipService.SetPlacement(el, vertical ? placement : PlacementMode.Mouse);
         }
     }
 

@@ -44,7 +44,7 @@
             </Border.Effect>
             <StackPanel x:Name="ToolbarStack" Orientation="Horizontal">
                 <!-- Drag handle: reorder dots (the whole bar is draggable; this is the affordance). -->
-                <UniformGrid Columns="2" Rows="3" Width="9" Height="14" VerticalAlignment="Center"
+                <UniformGrid x:Name="DragHandle" Columns="2" Rows="3" Width="9" Height="14" VerticalAlignment="Center"
                              Margin="2,0,12,0" Cursor="SizeAll" ToolTip="Drag to move"
                              TextElement.Foreground="{DynamicResource TextFillColorSecondaryBrush}">
                     <Ellipse Width="3" Height="3" Fill="{DynamicResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -56,8 +56,8 @@
                 </UniformGrid>
 
                 <!-- Lead with the capture kind: still snapshot vs video (icons only). -->
-                <Border Style="{StaticResource SegmentedContainer}" VerticalAlignment="Center">
-                    <UniformGrid Rows="1" Columns="2">
+                <Border x:Name="KindContainer" Style="{StaticResource SegmentedContainer}" VerticalAlignment="Center">
+                    <UniformGrid x:Name="KindGrid" Rows="1" Columns="2">
                         <RadioButton x:Name="KindSnapshot" Style="{StaticResource SegmentRadioButton}"
                                      GroupName="OverlayKind" MinWidth="46" ToolTip="Snapshot (still image)"
                                      FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17" Content="&#xE722;" />
@@ -67,14 +67,32 @@
                     </UniformGrid>
                 </Border>
 
-                <Border Style="{StaticResource SegmentedContainer}" VerticalAlignment="Center" Margin="12,0,0,0">
-                    <UniformGrid Rows="1" Columns="3">
+                <Border x:Name="ModeContainer" Style="{StaticResource SegmentedContainer}" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <UniformGrid x:Name="ModeGrid" Rows="1" Columns="3">
                         <RadioButton x:Name="ModeDisplay" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="OverlayMode" Content="Display" MinWidth="78" />
+                                     GroupName="OverlayMode" MinWidth="78" ToolTip="Display">
+                            <Grid>
+                                <TextBlock x:Name="ModeDisplayIcon" Text="&#xE7F4;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="17" HorizontalAlignment="Center" Visibility="Collapsed" />
+                                <TextBlock x:Name="ModeDisplayText" Text="Display" HorizontalAlignment="Center" />
+                            </Grid>
+                        </RadioButton>
                         <RadioButton x:Name="ModeWindow" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="OverlayMode" Content="Window" MinWidth="78" />
+                                     GroupName="OverlayMode" MinWidth="78" ToolTip="Window">
+                            <Grid>
+                                <TextBlock x:Name="ModeWindowIcon" Text="&#xE737;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="17" HorizontalAlignment="Center" Visibility="Collapsed" />
+                                <TextBlock x:Name="ModeWindowText" Text="Window" HorizontalAlignment="Center" />
+                            </Grid>
+                        </RadioButton>
                         <RadioButton x:Name="ModeCustom" Style="{StaticResource SegmentRadioButton}"
-                                     GroupName="OverlayMode" Content="Custom" MinWidth="78" />
+                                     GroupName="OverlayMode" MinWidth="78" ToolTip="Custom">
+                            <Grid>
+                                <TextBlock x:Name="ModeCustomIcon" Text="&#xE7A8;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="17" HorizontalAlignment="Center" Visibility="Collapsed" />
+                                <TextBlock x:Name="ModeCustomText" Text="Custom" HorizontalAlignment="Center" />
+                            </Grid>
+                        </RadioButton>
                     </UniformGrid>
                 </Border>
 
