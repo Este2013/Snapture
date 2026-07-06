@@ -13,6 +13,8 @@ internal sealed class HotkeyService : IDisposable
     // Common virtual-key codes.
     public const uint VK_F6 = 0x75;
     public const uint VK_F7 = 0x76;
+    public const uint VK_RETURN = 0x0D;
+    public const uint VK_ESCAPE = 0x1B;
 
     private const int WM_HOTKEY = 0x0312;
     private const uint MOD_NOREPEAT = 0x4000;
@@ -49,6 +51,30 @@ internal sealed class HotkeyService : IDisposable
             return false;
         _actions[id] = action;
         return true;
+    }
+
+    /// <summary>
+    /// Register a hotkey and return its id so it can be individually removed with
+    /// <see cref="Unregister"/> — used for keys that are only live while the picker
+    /// overlay is open, without disturbing the persistent app hotkeys. Returns 0
+    /// if the combo is unavailable.
+    /// </summary>
+    public int RegisterScoped(uint virtualKey, Action action, uint modifiers = 0)
+    {
+        if (_source is null) throw new InvalidOperationException("Call Initialize() first.");
+        int id = _nextId++;
+        if (!RegisterHotKey(_source.Handle, id, modifiers | MOD_NOREPEAT, virtualKey))
+            return 0;
+        _actions[id] = action;
+        return id;
+    }
+
+    /// <summary>Unregister a single hotkey previously returned by <see cref="RegisterScoped"/>.</summary>
+    public void Unregister(int id)
+    {
+        if (_source is null || id == 0) return;
+        if (_actions.Remove(id))
+            try { UnregisterHotKey(_source.Handle, id); } catch { }
     }
 
     /// <summary>Unregister all current hotkeys (keeps the message window for re-use).</summary>

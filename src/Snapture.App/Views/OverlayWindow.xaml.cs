@@ -92,6 +92,10 @@ public partial class OverlayWindow : Window
         _kind = kind;
         _mode = mode;
         _frozen = frozen;
+        // Never take foreground/activation: doing so dismisses transient popups
+        // (menus, dropdowns) in the app being captured. We show no-activate and
+        // route Enter/Esc via temporary global hotkeys instead of keyboard focus.
+        ShowActivated = false;
         CreateHandles();
 
         WireToolbar(kind, mode);
@@ -122,6 +126,29 @@ public partial class OverlayWindow : Window
 
     /// <summary>Raised when the user changes the capture mode mid-pick (Display/Window/Custom).</summary>
     public event Action? CaptureModeChanged;
+
+    private const int WM_MOUSEACTIVATE = 0x0021;
+    private const int MA_NOACTIVATE = 3;
+
+    /// <summary>Keep clicks from activating (and thus dismissing the captured popup).</summary>
+    private static nint NoActivateHook(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+    {
+        if (msg == WM_MOUSEACTIVATE)
+        {
+            handled = true;
+            return MA_NOACTIVATE;
+        }
+        return nint.Zero;
+    }
+
+    /// <summary>Confirm the current target (from an Enter hotkey; there's no keyboard focus).</summary>
+    public void TriggerConfirm()
+    {
+        if (GetCurrentTarget() is not null) Confirmed?.Invoke();
+    }
+
+    /// <summary>Cancel the pick (from an Esc hotkey; there's no keyboard focus).</summary>
+    public void TriggerCancel() => Cancelled?.Invoke();
 
     private void WireToolbar(CaptureKind kind, CaptureMode mode)
     {
@@ -246,13 +273,16 @@ public partial class OverlayWindow : Window
         if (_scale <= 0) _scale = 1.0;
 
         NativeMethods.SetWindowBoundsPhysical(this, _vx, _vy, _vw, _vh);
-        NativeMethods.MarkToolWindow(this, noActivate: false);
+        NativeMethods.MarkToolWindow(this, noActivate: true);
+
+        // Reject mouse activation so clicking the overlay never steals foreground
+        // from the app whose popup we're capturing.
+        src?.AddHook(NoActivateHook);
 
         _model = new SelectionModel(new CaptureRegion(_vx, _vy, _vw, _vh));
 
-        Activate();
-        Focus();
-        Keyboard.Focus(this);
+        // Deliberately no Activate()/Focus(): keeping the source app in the
+        // foreground is what lets its live popup stay open during the pick.
 
         if (NativeMethods.GetCursorPos(out var p))
         {
