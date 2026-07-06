@@ -275,17 +275,37 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             ? _settings.Current.SnapshotCaptureMode
             : _settings.Current.DefaultCaptureMode);
 
-        // Freeze the desktop for still captures *before* the overlay activates,
-        // so transient popups (menus, dropdowns) are preserved in pixels even
-        // though showing the overlay dismisses the live ones.
-        _frozen = kind == CaptureKind.Image ? CaptureFrozenDesktop() : null;
+        // The picker is shown without taking foreground (see OverlayWindow), which
+        // keeps the source app active so its live popups (menus, dropdowns) stay
+        // open through the pick and into the confirm-time grab. No frozen backdrop.
+        _frozen = null;
 
         _overlay = new OverlayWindow(kind, mode, _frozen);
         _overlay.Confirmed += ConfirmAndStart;
         _overlay.Cancelled += () => _ = CancelAsync();
         _overlay.CaptureModeChanged += OnOverlayCaptureModeChanged;
         _overlay.Show();
-        _overlay.Activate();
+
+        // A no-activate window gets no keyboard focus, so wire Enter/Esc as
+        // temporary global hotkeys for the duration of the pick.
+        RegisterPickerHotkeys();
+    }
+
+    private int _escHotkeyId, _enterHotkeyId;
+
+    private void RegisterPickerHotkeys()
+    {
+        var o = _overlay;
+        if (o is null || _hotkeys is null) return;
+        _escHotkeyId = _hotkeys.RegisterScoped(HotkeyService.VK_ESCAPE, () => o.TriggerCancel());
+        _enterHotkeyId = _hotkeys.RegisterScoped(HotkeyService.VK_RETURN, () => o.TriggerConfirm());
+    }
+
+    private void UnregisterPickerHotkeys()
+    {
+        _hotkeys?.Unregister(_escHotkeyId);
+        _hotkeys?.Unregister(_enterHotkeyId);
+        _escHotkeyId = _enterHotkeyId = 0;
     }
 
     /// <summary>Grab the whole virtual desktop into a one-shot frozen frame.</summary>
@@ -978,6 +998,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private void CloseOverlay()
     {
         _frozen = null;
+        UnregisterPickerHotkeys();
         if (_overlay is null) return;
         var o = _overlay; _overlay = null;
         try { o.Close(); } catch { }
