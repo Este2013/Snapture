@@ -13,6 +13,34 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,8" />
         </Style>
+
+        <!-- One selectable cell of the toolbar-position grid. When picked it gets an
+             accent border and reveals a little bar showing where the toolbar sits. -->
+        <Style x:Key="PositionCell" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="cell" CornerRadius="3" Background="Transparent"
+                                BorderBrush="Transparent" BorderThickness="2">
+                            <ContentPresenter x:Name="cp" Opacity="0" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="cell" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter TargetName="cp" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="cell" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="cell" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter TargetName="cp" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -310,25 +338,43 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="Toolbar position" VerticalAlignment="Top" Margin="0,10" />
                         <StackPanel Grid.Column="1" Margin="0,8">
-                            <!-- A little 'screen' with 8 anchor points; the sides make the bar vertical. -->
-                            <Border Width="150" Height="96" CornerRadius="6" HorizontalAlignment="Left"
+                            <!-- The 'screen', partitioned into 9 cells. Pick a cell (not the
+                                 centre); the little bar inside shows where the toolbar sits. -->
+                            <Border Width="214" Height="136" CornerRadius="8" HorizontalAlignment="Left"
                                     Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                <Grid Margin="8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" />
-                                    </Grid.RowDefinitions>
-                                    <RadioButton x:Name="PosTopLeft" GroupName="PickerPos" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" ToolTip="Top-left corner" />
-                                    <RadioButton x:Name="PosTopCenter" GroupName="PickerPos" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Top" ToolTip="Top edge" />
-                                    <RadioButton x:Name="PosTopRight" GroupName="PickerPos" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Top-right corner" />
-                                    <RadioButton x:Name="PosLeftCenter" GroupName="PickerPos" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip="Left edge (vertical bar)" />
-                                    <RadioButton x:Name="PosRightCenter" GroupName="PickerPos" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Right edge (vertical bar)" />
-                                    <RadioButton x:Name="PosBottomLeft" GroupName="PickerPos" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Bottom" ToolTip="Bottom-left corner" />
-                                    <RadioButton x:Name="PosBottomCenter" GroupName="PickerPos" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Bottom" ToolTip="Bottom edge" />
-                                    <RadioButton x:Name="PosBottomRight" GroupName="PickerPos" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" ToolTip="Bottom-right corner" />
+                                    BorderBrush="{DynamicResource TextFillColorSecondaryBrush}" BorderThickness="2">
+                                <Grid>
+                                    <Path Stroke="{DynamicResource TextFillColorSecondaryBrush}" StrokeThickness="1"
+                                          StrokeDashArray="3 2" IsHitTestVisible="False" SnapsToDevicePixels="True"
+                                          Data="M70,0 L70,132 M140,0 L140,132 M0,44 L210,44 M0,88 L210,88" />
+                                    <UniformGrid Rows="3" Columns="3">
+                                        <RadioButton x:Name="PosTopLeft" Style="{StaticResource PositionCell}" GroupName="PickerPos" ToolTip="Top-left corner">
+                                            <Rectangle Fill="{DynamicResource AccentFillColorDefaultBrush}" RadiusX="2" RadiusY="2" Width="22" Height="9" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                                        </RadioButton>
+                                        <RadioButton x:Name="PosTopCenter" Style="{StaticResource PositionCell}" GroupName="PickerPos" ToolTip="Top edge">
+                                            <Rectangle Fill="{DynamicResource AccentFillColorDefaultBrush}" RadiusX="2" RadiusY="2" Width="22" Height="9" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                                        </RadioButton>
+                                        <RadioButton x:Name="PosTopRight" Style="{StaticResource PositionCell}" GroupName="PickerPos" ToolTip="Top-right corner">
+                                            <Rectangle Fill="{DynamicResource AccentFillColorDefaultBrush}" RadiusX="2" RadiusY="2" Width="22" Height="9" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                                        </RadioButton>
+                                        <RadioButton x:Name="PosLeftCenter" Style="{StaticResource PositionCell}" GroupName="PickerPos" ToolTip="Left edge (vertical bar)">
+                                            <Rectangle Fill="{DynamicResource AccentFillColorDefaultBrush}" RadiusX="2" RadiusY="2" Width="9" Height="22" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                        </RadioButton>
+                                        <!-- centre: not selectable -->
+                                        <Border />
+                                        <RadioButton x:Name="PosRightCenter" Style="{StaticResource PositionCell}" GroupName="PickerPos" ToolTip="Right edge (vertical bar)">
+                                            <Rectangle Fill="{DynamicResource AccentFillColorDefaultBrush}" RadiusX="2" RadiusY="2" Width="9" Height="22" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        </RadioButton>
+                                        <RadioButton x:Name="PosBottomLeft" Style="{StaticResource PositionCell}" GroupName="PickerPos" ToolTip="Bottom-left corner">
+                                            <Rectangle Fill="{DynamicResource AccentFillColorDefaultBrush}" RadiusX="2" RadiusY="2" Width="22" Height="9" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                                        </RadioButton>
+                                        <RadioButton x:Name="PosBottomCenter" Style="{StaticResource PositionCell}" GroupName="PickerPos" ToolTip="Bottom edge">
+                                            <Rectangle Fill="{DynamicResource AccentFillColorDefaultBrush}" RadiusX="2" RadiusY="2" Width="22" Height="9" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                                        </RadioButton>
+                                        <RadioButton x:Name="PosBottomRight" Style="{StaticResource PositionCell}" GroupName="PickerPos" ToolTip="Bottom-right corner">
+                                            <Rectangle Fill="{DynamicResource AccentFillColorDefaultBrush}" RadiusX="2" RadiusY="2" Width="22" Height="9" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+                                        </RadioButton>
+                                    </UniformGrid>
                                 </Grid>
                             </Border>
                             <TextBlock Text="Left/right edges render the bar vertically." FontSize="12" Margin="0,8,0,0"
@@ -337,7 +383,7 @@
                     </Grid>
 
                     <Border Height="1" Margin="0,16,0,12" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
-                    <TextBlock Text="Keyboard &amp; scroll" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="Keyboard shortcuts" FontWeight="SemiBold" Margin="0,0,0,8" />
                     <Grid x:Name="PickerCommands">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="120" />
@@ -358,8 +404,8 @@
                         <TextBlock Grid.Row="3" Grid.Column="1" Text="Step back through earlier capture positions" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl+Z / Ctrl+Y" FontFamily="Consolas" Margin="0,4" />
                         <TextBlock Grid.Row="4" Grid.Column="1" Text="Undo / redo selection changes" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Scroll" FontFamily="Consolas" Margin="0,4" />
-                        <TextBlock Grid.Row="5" Grid.Column="1" Text="Before selecting: walk the UI-element tree · After: grow/shrink the rectangle" Margin="0,4" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Scroll" FontFamily="Consolas" Margin="0,4" VerticalAlignment="Top" />
+                        <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"><Run Text="- before: walk the tree of UI elements" /><LineBreak /><Run Text="- after: grow / shrink the selection" /></TextBlock>
                         <TextBlock Grid.Row="6" Grid.Column="0" Text="Click / drag" FontFamily="Consolas" Margin="0,4" />
                         <TextBlock Grid.Row="6" Grid.Column="1" Text="Snap to a UI area · drag for a custom rectangle" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <TextBlock Grid.Row="7" Grid.Column="0" Text="Arrows" FontFamily="Consolas" Margin="0,4" />

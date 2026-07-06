@@ -934,6 +934,8 @@ public partial class OverlayWindow : Window
         // Give the icon buttons room to breathe when stacked vertically.
         foreach (var b in new[] { KindSnapshot, KindVideo, ModeDisplay, ModeWindow, ModeCustom })
             b.Padding = vertical ? new Thickness(14, 12, 14, 12) : new Thickness(14, 6, 14, 6);
+        RecordButton.Padding = vertical ? new Thickness(12, 12, 12, 12) : new Thickness(12, 8, 12, 8);
+        CancelButton.Padding = vertical ? new Thickness(11, 12, 11, 12) : new Thickness(11, 8, 11, 8);
 
         // Rotate the drag dots so the handle still reads across a vertical bar.
         DragHandle.LayoutTransform = vertical ? new RotateTransform(90) : null;
