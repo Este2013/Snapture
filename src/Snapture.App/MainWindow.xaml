@@ -390,16 +390,14 @@
                         <TextBlock Grid.Column="0" Text="Selection toolbar position" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1">
                             <Border Style="{StaticResource SegmentedContainer}" HorizontalAlignment="Left">
-                                <UniformGrid Rows="1" Columns="5">
-                                    <RadioButton x:Name="SelPosLeft" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Left" MinWidth="58" />
-                                    <RadioButton x:Name="SelPosRight" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Right" MinWidth="58" />
-                                    <RadioButton x:Name="SelPosTop" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Top" MinWidth="58" />
-                                    <RadioButton x:Name="SelPosBottom" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Bottom" MinWidth="58" />
-                                    <RadioButton x:Name="SelPosDock" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Dock" MinWidth="58" />
+                                <UniformGrid Rows="1" Columns="5" TextElement.FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" TextElement.FontSize="16">
+                                    <RadioButton x:Name="SelPosLeft" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="&#xE76B;" MinWidth="48" ToolTip="Left edge" />
+                                    <RadioButton x:Name="SelPosRight" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="&#xE76C;" MinWidth="48" ToolTip="Right edge" />
+                                    <RadioButton x:Name="SelPosTop" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="&#xE70E;" MinWidth="48" ToolTip="Top edge" />
+                                    <RadioButton x:Name="SelPosBottom" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="&#xE70D;" MinWidth="48" ToolTip="Bottom edge" />
+                                    <RadioButton x:Name="SelPosDock" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="&#xE718;" MinWidth="48" ToolTip="Dock to main toolbar" />
                                 </UniformGrid>
                             </Border>
-                            <TextBlock Text="Which selection edge it attaches to (Dock = beside the main toolbar). Falls inside when there's no room." FontSize="12" Margin="0,6,0,0"
-                                       TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
                     </Grid>
 
