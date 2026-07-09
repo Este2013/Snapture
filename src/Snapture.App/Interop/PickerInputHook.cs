@@ -52,6 +52,11 @@ internal sealed class PickerInputHook : IDisposable
     private nint _keyboardHook, _mouseHook;
     private bool _shift, _ctrl;
 
+    // Arrow-key auto-repeat acceleration: held >2s doubles the step, >4s doubles
+    // again (capped). Tracks the currently-held arrow and when it went down.
+    private int _arrowVk;
+    private long _arrowStart;
+
     public PickerInputHook(Dispatcher dispatcher, Action onEnter, Action onEsc,
         Action onRetake, Action onHistoryBack, Action onUndo, Action onRedo, Action<int> onWheel,
         Action<int, int> onArrow)
@@ -78,6 +83,12 @@ internal sealed class PickerInputHook : IDisposable
 
             if (vk is VK_SHIFT or VK_LSHIFT or VK_RSHIFT) { if (down) _shift = true; else if (up) _shift = false; }
             else if (vk is VK_CONTROL or VK_LCONTROL or VK_RCONTROL) { if (down) _ctrl = true; else if (up) _ctrl = false; }
+            else if (IsArrow(vk))
+            {
+                if (down) AccelArrow(vk);
+                else if (up && _arrowVk == vk) _arrowVk = 0;
+                return 1; // the picker owns arrows during a pick
+            }
             else if (down && TryMap(vk, out var action))
             {
                 _dispatcher.BeginInvoke(action);
@@ -92,8 +103,7 @@ internal sealed class PickerInputHook : IDisposable
     }
 
     private bool IsMapped(int vk) =>
-        vk is VK_RETURN or VK_ESCAPE or VK_R or VK_LEFT or VK_UP or VK_RIGHT or VK_DOWN
-        || (_ctrl && vk is VK_Z or VK_Y);
+        vk is VK_RETURN or VK_ESCAPE or VK_R || (_ctrl && vk is VK_Z or VK_Y);
 
     private bool TryMap(int vk, out Action action)
     {
@@ -104,12 +114,28 @@ internal sealed class PickerInputHook : IDisposable
             case VK_R: action = _shift ? _onHistoryBack : _onRetake; return true;
             case VK_Z when _ctrl: action = _onUndo; return true;
             case VK_Y when _ctrl: action = _onRedo; return true;
-            case VK_LEFT: action = () => _onArrow(-1, 0); return true;
-            case VK_RIGHT: action = () => _onArrow(1, 0); return true;
-            case VK_UP: action = () => _onArrow(0, -1); return true;
-            case VK_DOWN: action = () => _onArrow(0, 1); return true;
             default: action = null!; return false;
         }
+    }
+
+    private static bool IsArrow(int vk) => vk is VK_LEFT or VK_RIGHT or VK_UP or VK_DOWN;
+
+    private static (int dx, int dy) ArrowDelta(int vk) => vk switch
+    {
+        VK_LEFT => (-1, 0),
+        VK_RIGHT => (1, 0),
+        VK_UP => (0, -1),
+        VK_DOWN => (0, 1),
+        _ => (0, 0),
+    };
+
+    private void AccelArrow(int vk)
+    {
+        if (_arrowVk != vk) { _arrowVk = vk; _arrowStart = Environment.TickCount64; }
+        long held = Environment.TickCount64 - _arrowStart;
+        int mult = held >= 4000 ? 4 : held >= 2000 ? 2 : 1;
+        var (dx, dy) = ArrowDelta(vk);
+        _dispatcher.BeginInvoke(() => _onArrow(dx * mult, dy * mult));
     }
 
     private nint MouseProc(int nCode, nint wParam, nint lParam)
