@@ -57,9 +57,15 @@ public partial class OverlayWindow : Window
     // Picker toolbar anchor + keyboard/scroll controls (the overlay never takes
     // focus, so shortcuts arrive via a low-level hook).
     private readonly PickerBarPosition _barPosition;
+    private readonly bool _dockSelToolbar;
     private readonly IReadOnlyList<CaptureRegion> _history;
     private int _historyIndex = -1;
     private PickerInputHook? _hook;
+
+    // Selection mini-toolbar state.
+    private bool _aspectOn;
+    private bool _rulerOn;
+    private bool _selToolbarInside; // placed inside the selection → dim unless hovered
 
     // Undo/redo of the selection rectangle (null = no selection).
     private readonly Stack<CaptureRegion?> _undo = new();
@@ -101,13 +107,15 @@ public partial class OverlayWindow : Window
 
     public OverlayWindow(CaptureKind kind, CaptureMode mode, FrozenScreen? frozen = null,
         PickerBarPosition barPosition = PickerBarPosition.TopCenter,
-        IReadOnlyList<CaptureRegion>? history = null)
+        IReadOnlyList<CaptureRegion>? history = null,
+        bool dockSelectionToolbar = false)
     {
         InitializeComponent();
         _kind = kind;
         _mode = mode;
         _frozen = frozen;
         _barPosition = barPosition;
+        _dockSelToolbar = dockSelectionToolbar;
         _history = history ?? Array.Empty<CaptureRegion>();
         // Never take foreground/activation: doing so dismisses transient popups
         // (menus, dropdowns) in the app being captured. We show no-activate and
@@ -116,6 +124,7 @@ public partial class OverlayWindow : Window
         CreateHandles();
 
         WireToolbar(kind, mode);
+        WireSelectionToolbar();
 
         Loaded += OnLoaded;
         SizeChanged += (_, _) => { UpdateVisuals(); PositionToolbar(); UpdateDisplayMap(); };
@@ -592,6 +601,7 @@ public partial class OverlayWindow : Window
         var (px, py) = ToPhysical(e.GetPosition(RootCanvas));
         _lastPx = px; _lastPy = py;
         _dragUndoState = CurrentState(); // snapshot before this interaction changes it
+        HideCropPicker();
 
         if (_mode != CaptureMode.Custom)
         {
@@ -795,6 +805,265 @@ public partial class OverlayWindow : Window
         }
     }
 
+    // ---- selection mini-toolbar ------------------------------------------
+
+    private void WireSelectionToolbar()
+    {
+        CropDisplayBtn.Click += (_, _) => CropToDisplay();
+        CropWindowBtn.Click += (_, _) => CropToWindow();
+        AspectBtn.Click += (_, _) => ToggleAspect();
+        RulerBtn.Click += (_, _) => ToggleRuler();
+
+        // Don't let clicks on the bars start a new selection.
+        SelectionToolbar.MouseLeftButtonDown += (_, e) => e.Handled = true;
+        CropPicker.MouseLeftButtonDown += (_, e) => e.Handled = true;
+
+        // When placed inside the selection, dim until hovered.
+        SelectionToolbar.MouseEnter += (_, _) => { if (_selToolbarInside) SelectionToolbar.Opacity = 1.0; };
+        SelectionToolbar.MouseLeave += (_, _) => { if (_selToolbarInside) SelectionToolbar.Opacity = 0.5; };
+    }
+
+    /// <summary>Show/place the mini-toolbar for a committed custom selection; hide otherwise.</summary>
+    private void UpdateSelectionToolbar()
+    {
+        bool show = _mode == CaptureMode.Custom && (_model?.HasSelection ?? false);
+        if (!show)
+        {
+            SelectionToolbar.Visibility = Visibility.Collapsed;
+            HideCropPicker();
+            return;
+        }
+
+        SelectionToolbar.Visibility = Visibility.Visible;
+        SelectionToolbar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        double tw = SelectionToolbar.DesiredSize.Width, th = SelectionToolbar.DesiredSize.Height;
+
+        var r = _model!.Region;
+        var mon = MonitorForRegion(r);
+        double sx = PhysXToDip(r.X), sy = PhysYToDip(r.Y), sw = r.Width / _scale, sh = r.Height / _scale;
+        double mx = PhysXToDip(mon.X), my = PhysYToDip(mon.Y), mw = mon.Width / _scale, mh = mon.Height / _scale;
+        const double gap = 8;
+
+        double x, y;
+        _selToolbarInside = false;
+
+        if (_dockSelToolbar)
+        {
+            (x, y) = DockNextToMainBar(tw, th, gap);
+        }
+        else if (sx - mx >= tw + gap)                       // left
+        {
+            x = sx - gap - tw; y = Center(sy, sh, th, my, mh);
+        }
+        else if (mx + mw - (sx + sw) >= tw + gap)           // right
+        {
+            x = sx + sw + gap; y = Center(sy, sh, th, my, mh);
+        }
+        else if (my + mh - (sy + sh) >= th + gap)           // bottom
+        {
+            y = sy + sh + gap; x = Center(sx, sw, tw, mx, mw);
+        }
+        else if (sy - my >= th + gap)                       // top
+        {
+            y = sy - gap - th; x = Center(sx, sw, tw, mx, mw);
+        }
+        else                                                 // no room outside → inside
+        {
+            _selToolbarInside = true;
+            x = Clamp(sx + gap, mx, mx + mw - tw);
+            y = Clamp(sy + gap, my, my + mh - th);
+        }
+
+        Canvas.SetLeft(SelectionToolbar, x);
+        Canvas.SetTop(SelectionToolbar, y);
+        SelectionToolbar.Opacity = _selToolbarInside && !SelectionToolbar.IsMouseOver ? 0.5 : 1.0;
+
+        if (CropPicker.Visibility == Visibility.Visible) PositionCropPicker();
+    }
+
+    /// <summary>Centre the bar on the selection edge, clamped to the monitor.</summary>
+    private static double Center(double selStart, double selLen, double barLen, double monStart, double monLen) =>
+        Clamp(selStart + (selLen - barLen) / 2, monStart, monStart + monLen - barLen);
+
+    private static double Clamp(double v, double lo, double hi) => hi < lo ? lo : Math.Clamp(v, lo, hi);
+
+    private (double x, double y) DockNextToMainBar(double tw, double th, double gap)
+    {
+        double ml = Canvas.GetLeft(Toolbar), mt = Canvas.GetTop(Toolbar);
+        double mwid = Toolbar.ActualWidth, mhei = Toolbar.ActualHeight;
+        var (amx, amy, amw, amh) = ActiveMonitorDip();
+        double x, y;
+        switch (_barPosition)
+        {
+            case PickerBarPosition.LeftCenter: x = ml + mwid + gap; y = mt; break;
+            case PickerBarPosition.RightCenter: x = ml - gap - tw; y = mt; break;
+            case PickerBarPosition.BottomLeft or PickerBarPosition.BottomCenter or PickerBarPosition.BottomRight:
+                x = ml; y = mt - gap - th; break;
+            default: x = ml; y = mt + mhei + gap; break; // top-anchored → below
+        }
+        return (Clamp(x, amx, amx + amw - tw), Clamp(y, amy, amy + amh - th));
+    }
+
+    private void ToggleAspect()
+    {
+        _aspectOn = !_aspectOn;
+        _model?.SetAspectLock(_aspectOn);
+        AspectBtn.Content = _aspectOn ? ((char)0xE72E).ToString() : ((char)0xE785).ToString(); // locked / unlocked padlock
+        AspectBtn.Background = _aspectOn ? OnBrush : System.Windows.Media.Brushes.Transparent;
+    }
+
+    private void ToggleRuler()
+    {
+        _rulerOn = !_rulerOn;
+        RulerBtn.Background = _rulerOn ? OnBrush : System.Windows.Media.Brushes.Transparent;
+        UpdateVisuals();
+    }
+
+    private static readonly System.Windows.Media.Brush OnBrush =
+        new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF));
+
+    // ---- crop to display / window ----------------------------------------
+
+    private void CropToDisplay()
+    {
+        if (!(_model?.HasSelection ?? false)) return;
+        var sel = _model.Region;
+        var monitors = ScreenInfo.GetMonitors();
+        var hits = new List<(string Label, CaptureRegion Bounds)>();
+        for (int i = 0; i < monitors.Count; i++)
+            if (Intersects(monitors[i].Bounds, sel))
+                hits.Add(($"Display {i + 1} ({monitors[i].Bounds.Width}x{monitors[i].Bounds.Height})", monitors[i].Bounds));
+        if (hits.Count == 0) return;
+        if (hits.Count == 1) { CropTo(hits[0].Bounds); return; }
+        ShowCropPicker(hits);
+    }
+
+    private void CropToWindow()
+    {
+        if (!(_model?.HasSelection ?? false)) return;
+        var sel = _model.Region;
+        var own = new WindowInteropHelper(this).Handle;
+        var hits = ScreenInfo.GetOpenWindows()
+            .Where(w => w.Handle != own && w.Handle != ToolbarHandle && Intersects(w.Bounds, sel))
+            .ToList();
+        if (hits.Count == 0) return;
+        if (hits.Count == 1) { CropTo(hits[0].Bounds); return; }
+        ShowCropPicker(hits.Select(w => (Trim(w.Title), w.Bounds)));
+    }
+
+    private void CropTo(CaptureRegion region)
+    {
+        if (!(_model?.HasSelection ?? false)) return;
+        var cropped = Intersect(_model.Region, region);
+        if (cropped.ToEvenDimensions().IsEmpty) return;
+        RecordUndo(CurrentState());
+        _model.Set(cropped);
+        _dragUndoState = CurrentState();
+        HideCropPicker();
+        UpdateVisuals();
+        RaiseTarget();
+    }
+
+    private void ShowCropPicker(IEnumerable<(string Label, CaptureRegion Bounds)> items)
+    {
+        CropPickerList.Children.Clear();
+        foreach (var (label, bounds) in items)
+        {
+            var b = new Button { Content = label, Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(0, 1, 0, 1), HorizontalContentAlignment = HorizontalAlignment.Left, Cursor = Cursors.Hand };
+            b.Click += (_, _) => CropTo(bounds);
+            CropPickerList.Children.Add(b);
+        }
+        CropPicker.Visibility = Visibility.Visible;
+        PositionCropPicker();
+    }
+
+    private void PositionCropPicker()
+    {
+        CropPicker.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        double x = Canvas.GetLeft(SelectionToolbar);
+        double y = Canvas.GetTop(SelectionToolbar) + SelectionToolbar.ActualHeight + 4;
+        var (amx, amy, amw, amh) = ActiveMonitorDip();
+        Canvas.SetLeft(CropPicker, Clamp(x, amx, amx + amw - CropPicker.DesiredSize.Width));
+        Canvas.SetTop(CropPicker, Clamp(y, amy, amy + amh - CropPicker.DesiredSize.Height));
+    }
+
+    private void HideCropPicker() => CropPicker.Visibility = Visibility.Collapsed;
+
+    private static string Trim(string s) => s.Length <= 40 ? s : s[..39] + "…";
+
+    private static bool Intersects(CaptureRegion a, CaptureRegion b) =>
+        a.X < b.Right && a.Right > b.X && a.Y < b.Bottom && a.Bottom > b.Y;
+
+    private static CaptureRegion Intersect(CaptureRegion a, CaptureRegion b)
+    {
+        int l = Math.Max(a.X, b.X), t = Math.Max(a.Y, b.Y);
+        int r = Math.Min(a.Right, b.Right), bo = Math.Min(a.Bottom, b.Bottom);
+        return new CaptureRegion(l, t, Math.Max(0, r - l), Math.Max(0, bo - t));
+    }
+
+    private CaptureRegion MonitorForRegion(CaptureRegion r)
+    {
+        CaptureRegion best = default;
+        long bestOverlap = -1;
+        foreach (var m in ScreenInfo.GetMonitors())
+        {
+            var i = Intersect(m.Bounds, r);
+            long area = (long)i.Width * i.Height;
+            if (area > bestOverlap) { bestOverlap = area; best = m.Bounds; }
+        }
+        return best.IsEmpty ? ScreenInfo.MonitorAt(r.X + r.Width / 2, r.Y + r.Height / 2).Bounds : best;
+    }
+
+    // ---- ruler -----------------------------------------------------------
+
+    private void DrawRuler(CaptureRegion r)
+    {
+        RulerLayer.Children.Clear();
+        if (!_rulerOn || r.IsEmpty) return;
+
+        var mon = MonitorForRegion(r);
+        double sx = PhysXToDip(r.X), sy = PhysYToDip(r.Y), sw = r.Width / _scale, sh = r.Height / _scale;
+        double mx = PhysXToDip(mon.X), my = PhysYToDip(mon.Y), mw = mon.Width / _scale, mh = mon.Height / _scale;
+        double cx = sx + sw / 2, cy = sy + sh / 2;
+
+        // Gap projections from the selection edges to the monitor edges.
+        RulerLine(sx, cy, mx, cy); RulerLabel($"{r.X - mon.X}", (sx + mx) / 2, cy);
+        RulerLine(sx + sw, cy, mx + mw, cy); RulerLabel($"{mon.Right - r.Right}", (sx + sw + mx + mw) / 2, cy);
+        RulerLine(cx, sy, cx, my); RulerLabel($"{r.Y - mon.Y}", cx, (sy + my) / 2);
+        RulerLine(cx, sy + sh, cx, my + mh); RulerLabel($"{mon.Bottom - r.Bottom}", cx, (sy + sh + my + mh) / 2);
+
+        // The selection's own dimensions.
+        RulerLabel($"{r.Width} px", cx, sy - 12);
+        RulerLabel($"{r.Height} px", sx - 22, cy);
+    }
+
+    private void RulerLine(double x1, double y1, double x2, double y2)
+    {
+        RulerLayer.Children.Add(new Line
+        {
+            X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
+            Stroke = SelectionBorder.Stroke,
+            StrokeThickness = 1,
+            StrokeDashArray = new DoubleCollection(new double[] { 3, 3 }),
+            IsHitTestVisible = false,
+        });
+    }
+
+    private void RulerLabel(string text, double x, double y)
+    {
+        var tb = new TextBlock { Text = text, Foreground = System.Windows.Media.Brushes.White, FontSize = 11, FontFamily = new System.Windows.Media.FontFamily("Consolas") };
+        var badge = new Border
+        {
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0xCC, 0, 0, 0)),
+            CornerRadius = new CornerRadius(3), Padding = new Thickness(4, 1, 4, 1), Child = tb,
+            IsHitTestVisible = false,
+        };
+        badge.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        Canvas.SetLeft(badge, x - badge.DesiredSize.Width / 2);
+        Canvas.SetTop(badge, y - badge.DesiredSize.Height / 2);
+        RulerLayer.Children.Add(badge);
+    }
+
     // ---- rendering --------------------------------------------------------
 
     private CaptureRegion CurrentRegionPhysical() => _mode switch
@@ -818,6 +1087,8 @@ public partial class OverlayWindow : Window
             InfoBadge.Visibility = Visibility.Collapsed;
             HideHandles();
             CenterHint();
+            UpdateSelectionToolbar();
+            DrawRuler(default);
             return;
         }
 
@@ -854,6 +1125,9 @@ public partial class OverlayWindow : Window
         if (badgeY < 0) badgeY = holeRect.Y + 6;
         Canvas.SetLeft(InfoBadge, holeRect.X);
         Canvas.SetTop(InfoBadge, badgeY);
+
+        UpdateSelectionToolbar();
+        DrawRuler(_mode == CaptureMode.Custom && (_model?.HasSelection ?? false) ? _model!.Region : default);
     }
 
     private (double X, double Y, double W, double H) PrimaryMonitorDip()

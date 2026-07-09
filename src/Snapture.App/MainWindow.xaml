@@ -382,6 +382,19 @@
                         </StackPanel>
                     </Grid>
 
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Selection toolbar" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1">
+                            <CheckBox x:Name="SelToolbarDockSwitch" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" />
+                            <TextBlock Text="Dock it to the main toolbar instead of placing it around the selection." FontSize="12" Margin="0,6,0,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+
                     <Border Height="1" Margin="0,16,0,12" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
                     <TextBlock Text="Keyboard shortcuts" FontWeight="SemiBold" Margin="0,0,0,8" />
                     <Grid x:Name="PickerCommands">

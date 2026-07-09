@@ -471,5 +471,11 @@ C:\PROJECTS\Snapture\packaging\publish\Microsoft.Windows.SDK.NET.dll
 C:\PROJECTS\Snapture\packaging\publish\WinRT.Runtime.dll
 C:\PROJECTS\Snapture\packaging\publish\Hardcodet.NotifyIcon.Wpf.dll
 C:\PROJECTS\Snapture\packaging\publish\Microsoft.Toolkit.Uwp.Notifications.dll
+C:\PROJECTS\Snapture\packaging\publish\SharpGen.Runtime.dll
+C:\PROJECTS\Snapture\packaging\publish\SharpGen.Runtime.COM.dll
+C:\PROJECTS\Snapture\packaging\publish\Vortice.Direct3D11.dll
+C:\PROJECTS\Snapture\packaging\publish\Vortice.DirectX.dll
+C:\PROJECTS\Snapture\packaging\publish\Vortice.DXGI.dll
+C:\PROJECTS\Snapture\packaging\publish\Vortice.Mathematics.dll
 C:\PROJECTS\Snapture\packaging\publish\Snapture.Core.dll
 C:\PROJECTS\Snapture\packaging\publish\Snapture.Core.pdb

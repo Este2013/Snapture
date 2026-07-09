@@ -35,6 +35,20 @@ public sealed class SelectionModel
 
     public bool HasSelection => !Region.IsEmpty;
 
+    /// <summary>When true, resizing/inflating preserves <see cref="AspectRatio"/>.</summary>
+    public bool AspectLocked { get; private set; }
+
+    /// <summary>Locked width:height ratio (only meaningful while <see cref="AspectLocked"/>).</summary>
+    public double AspectRatio { get; private set; } = 1.0;
+
+    /// <summary>Toggle the aspect lock, capturing the current ratio when enabling.</summary>
+    public void SetAspectLock(bool on)
+    {
+        AspectLocked = on;
+        if (on && HasSelection && Region.Height > 0)
+            AspectRatio = (double)Region.Width / Region.Height;
+    }
+
     private int _anchorX, _anchorY; // fixed corner while drawing
 
     public void BeginDraw(int x, int y)
@@ -63,16 +77,16 @@ public sealed class SelectionModel
     public void Inflate(int delta)
     {
         if (!HasSelection) return;
-        int left = Region.X - delta, top = Region.Y - delta;
-        int right = Region.Right + delta, bottom = Region.Bottom + delta;
+        int cx = Region.X + Region.Width / 2;
+        int cy = Region.Y + Region.Height / 2;
 
-        // Never collapse past a 2px minimum around the centre.
-        if (right - left < 2) { int cx = Region.X + Region.Width / 2; left = cx - 1; right = cx + 1; }
-        if (bottom - top < 2) { int cy = Region.Y + Region.Height / 2; top = cy - 1; bottom = cy + 1; }
+        int newW = Math.Max(2, Region.Width + 2 * delta);
+        int newH = AspectLocked && AspectRatio > 0
+            ? Math.Max(2, (int)Math.Round(newW / AspectRatio))
+            : Math.Max(2, Region.Height + 2 * delta);
 
-        left = Math.Max(left, _vx); top = Math.Max(top, _vy);
-        right = Math.Min(right, _vRight); bottom = Math.Min(bottom, _vBottom);
-        Region = new CaptureRegion(left, top, right - left, bottom - top);
+        int left = cx - newW / 2, top = cy - newH / 2;
+        Region = new CaptureRegion(left, top, newW, newH).ClampTo(_vx, _vy, _vRight, _vBottom);
     }
 
     /// <summary>Move the whole rectangle by a pixel delta, clamped to bounds.</summary>
@@ -92,14 +106,32 @@ public sealed class SelectionModel
 
         int left = Region.X, top = Region.Y, right = Region.Right, bottom = Region.Bottom;
 
-        if (handle is SelectionHandle.Left or SelectionHandle.TopLeft or SelectionHandle.BottomLeft)
-            left = Math.Clamp(left + dx, _vx, right - 1);
-        if (handle is SelectionHandle.Right or SelectionHandle.TopRight or SelectionHandle.BottomRight)
-            right = Math.Clamp(right + dx, left + 1, _vRight);
-        if (handle is SelectionHandle.Top or SelectionHandle.TopLeft or SelectionHandle.TopRight)
-            top = Math.Clamp(top + dy, _vy, bottom - 1);
-        if (handle is SelectionHandle.Bottom or SelectionHandle.BottomLeft or SelectionHandle.BottomRight)
-            bottom = Math.Clamp(bottom + dy, top + 1, _vBottom);
+        bool changesLeft = handle is SelectionHandle.Left or SelectionHandle.TopLeft or SelectionHandle.BottomLeft;
+        bool changesRight = handle is SelectionHandle.Right or SelectionHandle.TopRight or SelectionHandle.BottomRight;
+        bool changesTop = handle is SelectionHandle.Top or SelectionHandle.TopLeft or SelectionHandle.TopRight;
+        bool changesBottom = handle is SelectionHandle.Bottom or SelectionHandle.BottomLeft or SelectionHandle.BottomRight;
+
+        if (changesLeft) left = Math.Clamp(left + dx, _vx, right - 1);
+        if (changesRight) right = Math.Clamp(right + dx, left + 1, _vRight);
+        if (changesTop) top = Math.Clamp(top + dy, _vy, bottom - 1);
+        if (changesBottom) bottom = Math.Clamp(bottom + dy, top + 1, _vBottom);
+
+        if (AspectLocked && AspectRatio > 0)
+        {
+            // Derive the height from the (possibly new) width, anchored on the
+            // edge the handle isn't dragging; edge handles resize about the centre.
+            int w = right - left;
+            int h = Math.Max(1, (int)Math.Round(w / AspectRatio));
+            if (changesTop && !changesBottom) top = bottom - h;
+            else if (changesBottom || (changesTop && changesBottom)) bottom = top + h;
+            else
+            {
+                int cy = Region.Y + Region.Height / 2;
+                top = cy - h / 2; bottom = top + h;
+            }
+            top = Math.Max(top, _vy);
+            bottom = Math.Min(bottom, _vBottom);
+        }
 
         Region = new CaptureRegion(left, top, right - left, bottom - top);
     }

@@ -88,6 +88,12 @@ public sealed class AppSettings
     /// <summary>Where the picker toolbar anchors on the active monitor.</summary>
     public PickerBarPosition PickerBarPosition { get; set; } = PickerBarPosition.TopCenter;
 
+    /// <summary>
+    /// Dock the selection's mini-toolbar next to the main toolbar instead of
+    /// auto-placing it around the selection rectangle.
+    /// </summary>
+    public bool SelectionToolbarDockToMain { get; set; }
+
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
 }
 

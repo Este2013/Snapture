@@ -842,7 +842,7 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "1.2.5",
+    "version": "1.3.1",
     "restore": {
       "projectUniqueName": "C:\\PROJECTS\\Snapture\\src\\Snapture.App\\Snapture.App.csproj",
       "projectName": "Snapture",

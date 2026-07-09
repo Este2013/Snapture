@@ -10,9 +10,36 @@
         Focusable="True"
         Cursor="Cross"
         FontFamily="Segoe UI Variable Text, Segoe UI">
+    <Window.Resources>
+        <!-- Flat white-on-red icon button for the selection mini-toolbar. -->
+        <Style x:Key="RedToolButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="5" Padding="9,7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#33FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Canvas x:Name="RootCanvas" ClipToBounds="True">
         <!-- The dim is rendered by a separate GPU-composited DimWindow behind this
              one; this window stays a lightweight input + chrome layer. -->
+
+        <!-- Ruler guide lines + labels (drawn in code when toggled on). -->
+        <Canvas x:Name="RulerLayer" IsHitTestVisible="False" />
 
         <!-- Selection outline -->
         <Rectangle x:Name="SelectionBorder"
@@ -31,6 +58,27 @@
             <TextBlock x:Name="HintText" Foreground="White" FontSize="13"
                        TextAlignment="Center"
                        Text="Hover to snap to a UI area  •  Scroll for its parent  •  Click to lock it in  •  Drag for a custom area  •  Enter to record  •  Esc to cancel" />
+        </Border>
+
+        <!-- Selection mini-toolbar (red): crop-to-display/window, aspect lock, ruler.
+             Placed near the selection (or docked to the main bar) in code. -->
+        <Border x:Name="SelectionToolbar" CornerRadius="8" Padding="4" Visibility="Collapsed"
+                Background="#F0C0392B" BorderBrush="#40FFFFFF" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="14" ShadowDepth="2" Opacity="0.5" Color="Black" />
+            </Border.Effect>
+            <StackPanel x:Name="SelectionToolStack" Orientation="Horizontal">
+                <Button x:Name="CropDisplayBtn" Style="{StaticResource RedToolButton}" Content="&#xE7F4;" ToolTip="Crop to display" />
+                <Button x:Name="CropWindowBtn" Style="{StaticResource RedToolButton}" Content="&#xE737;" ToolTip="Crop to window" />
+                <Button x:Name="AspectBtn" Style="{StaticResource RedToolButton}" Content="&#xE785;" ToolTip="Keep aspect ratio" />
+                <Button x:Name="RulerBtn" Style="{StaticResource RedToolButton}" Content="&#xE1E9;" ToolTip="Ruler" />
+            </StackPanel>
+        </Border>
+
+        <!-- Popup list to choose among several overlapping displays/windows. -->
+        <Border x:Name="CropPicker" CornerRadius="6" Padding="4" Visibility="Collapsed"
+                Background="#F02B2B2B" BorderBrush="#40FFFFFF" BorderThickness="1">
+            <StackPanel x:Name="CropPickerList" Orientation="Vertical" />
         </Border>
 
         <!-- Operable toolbar (rendered last → always above the dim).

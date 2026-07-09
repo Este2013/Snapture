@@ -288,7 +288,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _frozen = null;
 
         _overlay = new OverlayWindow(kind, mode, _frozen,
-            _settings.Current.PickerBarPosition, _captureHistory.ToList());
+            _settings.Current.PickerBarPosition, _captureHistory.ToList(),
+            _settings.Current.SelectionToolbarDockToMain);
         _overlay.Confirmed += ConfirmAndStart;
         _overlay.Cancelled += () => _ = CancelAsync();
         _overlay.CaptureModeChanged += OnOverlayCaptureModeChanged;

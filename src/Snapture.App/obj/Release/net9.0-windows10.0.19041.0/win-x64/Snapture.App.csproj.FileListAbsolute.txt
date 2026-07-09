@@ -499,3 +499,9 @@ C:\PROJECTS\Snapture\src\Snapture.App\obj\Release\net9.0-windows10.0.19041.0\win
 C:\PROJECTS\Snapture\src\Snapture.App\obj\Release\net9.0-windows10.0.19041.0\win-x64\Snapture.pdb
 C:\PROJECTS\Snapture\src\Snapture.App\obj\Release\net9.0-windows10.0.19041.0\win-x64\Snapture.App.genruntimeconfig.cache
 C:\PROJECTS\Snapture\src\Snapture.App\obj\Release\net9.0-windows10.0.19041.0\win-x64\ref\Snapture.dll
+C:\PROJECTS\Snapture\src\Snapture.App\bin\Release\net9.0-windows10.0.19041.0\win-x64\SharpGen.Runtime.dll
+C:\PROJECTS\Snapture\src\Snapture.App\bin\Release\net9.0-windows10.0.19041.0\win-x64\SharpGen.Runtime.COM.dll
+C:\PROJECTS\Snapture\src\Snapture.App\bin\Release\net9.0-windows10.0.19041.0\win-x64\Vortice.Direct3D11.dll
+C:\PROJECTS\Snapture\src\Snapture.App\bin\Release\net9.0-windows10.0.19041.0\win-x64\Vortice.DirectX.dll
+C:\PROJECTS\Snapture\src\Snapture.App\bin\Release\net9.0-windows10.0.19041.0\win-x64\Vortice.DXGI.dll
+C:\PROJECTS\Snapture\src\Snapture.App\bin\Release\net9.0-windows10.0.19041.0\win-x64\Vortice.Mathematics.dll

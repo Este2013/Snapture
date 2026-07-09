@@ -74,6 +74,7 @@ public partial class MainWindow : Window
 
         foreach (var r in new[] { PosTopLeft, PosTopCenter, PosTopRight, PosLeftCenter, PosRightCenter, PosBottomLeft, PosBottomCenter, PosBottomRight })
             r.Checked += (_, _) => Persist();
+        SelToolbarDockSwitch.Click += (_, _) => Persist();
 
         // Snapshot
         SnapFormatPng.Checked += (_, _) => Persist();
@@ -167,6 +168,7 @@ public partial class MainWindow : Window
         PortBox.Text = s.ControlServerPort.ToString();
 
         SetPickerPositionRadio(s.PickerBarPosition);
+        SelToolbarDockSwitch.IsChecked = s.SelectionToolbarDockToMain;
 
         SelectDefaultTab();
 
@@ -240,6 +242,7 @@ public partial class MainWindow : Window
             s.ControlServerPort = port;
 
         s.PickerBarPosition = SelectedPickerPosition();
+        s.SelectionToolbarDockToMain = SelToolbarDockSwitch.IsChecked == true;
 
         _settings.Save(s);
         UpdateLibraryUi();
