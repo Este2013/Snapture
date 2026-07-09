@@ -52,6 +52,19 @@ public enum PickerBarPosition
     LeftCenter,
 }
 
+/// <summary>
+/// Which edge of the selection the mini-toolbar attaches to (rendering inside
+/// that edge when there's no room outside), or docked to the main toolbar.
+/// </summary>
+public enum SelectionToolbarPlacement
+{
+    Left,
+    Right,
+    Top,
+    Bottom,
+    DockToMain,
+}
+
 /// <summary>Lifecycle of the recording pipeline. Drives both the UI and IPC.</summary>
 public enum RecordingState
 {

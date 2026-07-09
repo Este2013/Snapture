@@ -57,7 +57,7 @@ public partial class OverlayWindow : Window
     // Picker toolbar anchor + keyboard/scroll controls (the overlay never takes
     // focus, so shortcuts arrive via a low-level hook).
     private readonly PickerBarPosition _barPosition;
-    private readonly bool _dockSelToolbar;
+    private readonly SelectionToolbarPlacement _selPlacement;
     private readonly IReadOnlyList<CaptureRegion> _history;
     private int _historyIndex = -1;
     private PickerInputHook? _hook;
@@ -108,14 +108,14 @@ public partial class OverlayWindow : Window
     public OverlayWindow(CaptureKind kind, CaptureMode mode, FrozenScreen? frozen = null,
         PickerBarPosition barPosition = PickerBarPosition.TopCenter,
         IReadOnlyList<CaptureRegion>? history = null,
-        bool dockSelectionToolbar = false)
+        SelectionToolbarPlacement selToolbarPlacement = SelectionToolbarPlacement.Left)
     {
         InitializeComponent();
         _kind = kind;
         _mode = mode;
         _frozen = frozen;
         _barPosition = barPosition;
-        _dockSelToolbar = dockSelectionToolbar;
+        _selPlacement = selToolbarPlacement;
         _history = history ?? Array.Empty<CaptureRegion>();
         // Never take foreground/activation: doing so dismisses transient popups
         // (menus, dropdowns) in the app being captured. We show no-activate and
@@ -834,45 +834,63 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        // Vertical bar when attached to a side (or docked beside a vertical main bar).
+        bool vertical = _selPlacement is SelectionToolbarPlacement.Left or SelectionToolbarPlacement.Right
+            || (_selPlacement == SelectionToolbarPlacement.DockToMain && _barPosition is PickerBarPosition.LeftCenter or PickerBarPosition.RightCenter);
+        SelectionToolStack.Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
+
         SelectionToolbar.Visibility = Visibility.Visible;
         SelectionToolbar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         double tw = SelectionToolbar.DesiredSize.Width, th = SelectionToolbar.DesiredSize.Height;
+
+        // Crop buttons are only usable when there's something to crop to. This
+        // enumerates windows, so skip it during an active drag (recomputed on drop).
+        if (!_dragging)
+        {
+            CropDisplayBtn.IsEnabled = DisplayCropCandidates().Count > 0;
+            CropWindowBtn.IsEnabled = WindowCropCandidates().Count > 0;
+        }
 
         var r = _model!.Region;
         var mon = MonitorForRegion(r);
         double sx = PhysXToDip(r.X), sy = PhysYToDip(r.Y), sw = r.Width / _scale, sh = r.Height / _scale;
         double mx = PhysXToDip(mon.X), my = PhysYToDip(mon.Y), mw = mon.Width / _scale, mh = mon.Height / _scale;
+        double sR = sx + sw, sB = sy + sh, mR = mx + mw, mB = my + mh;
         const double gap = 8;
 
-        double x, y;
+        double x = sx, y = sy;
         _selToolbarInside = false;
 
-        if (_dockSelToolbar)
+        switch (_selPlacement)
         {
-            (x, y) = DockNextToMainBar(tw, th, gap);
+            case SelectionToolbarPlacement.DockToMain:
+                (x, y) = DockNextToMainBar(tw, th, gap);
+                break;
+            case SelectionToolbarPlacement.Left:
+                if (sx - mx >= tw + gap) x = sx - gap - tw;
+                else { _selToolbarInside = true; x = sx + gap; }
+                y = Center(sy, sh, th, my, mh);
+                break;
+            case SelectionToolbarPlacement.Right:
+                if (mR - sR >= tw + gap) x = sR + gap;
+                else { _selToolbarInside = true; x = sR - gap - tw; }
+                y = Center(sy, sh, th, my, mh);
+                break;
+            case SelectionToolbarPlacement.Top:
+                if (sy - my >= th + gap) y = sy - gap - th;
+                else { _selToolbarInside = true; y = sy + gap; }
+                x = Center(sx, sw, tw, mx, mw);
+                break;
+            case SelectionToolbarPlacement.Bottom:
+                if (mB - sB >= th + gap) y = sB + gap;
+                else { _selToolbarInside = true; y = sB - gap - th; }
+                x = Center(sx, sw, tw, mx, mw);
+                break;
         }
-        else if (sx - mx >= tw + gap)                       // left
-        {
-            x = sx - gap - tw; y = Center(sy, sh, th, my, mh);
-        }
-        else if (mx + mw - (sx + sw) >= tw + gap)           // right
-        {
-            x = sx + sw + gap; y = Center(sy, sh, th, my, mh);
-        }
-        else if (my + mh - (sy + sh) >= th + gap)           // bottom
-        {
-            y = sy + sh + gap; x = Center(sx, sw, tw, mx, mw);
-        }
-        else if (sy - my >= th + gap)                       // top
-        {
-            y = sy - gap - th; x = Center(sx, sw, tw, mx, mw);
-        }
-        else                                                 // no room outside → inside
-        {
-            _selToolbarInside = true;
-            x = Clamp(sx + gap, mx, mx + mw - tw);
-            y = Clamp(sy + gap, my, my + mh - th);
-        }
+
+        // Never let the bar spill off the selection's monitor.
+        x = Clamp(x, mx, mx + mw - tw);
+        y = Clamp(y, my, my + mh - th);
 
         Canvas.SetLeft(SelectionToolbar, x);
         Canvas.SetTop(SelectionToolbar, y);
@@ -924,31 +942,59 @@ public partial class OverlayWindow : Window
 
     // ---- crop to display / window ----------------------------------------
 
-    private void CropToDisplay()
+    private void CropToDisplay() => RunCrop(DisplayCropCandidates());
+    private void CropToWindow() => RunCrop(WindowCropCandidates());
+
+    private void RunCrop(List<(string Label, CaptureRegion Bounds)> hits)
     {
-        if (!(_model?.HasSelection ?? false)) return;
-        var sel = _model.Region;
-        var monitors = ScreenInfo.GetMonitors();
-        var hits = new List<(string Label, CaptureRegion Bounds)>();
-        for (int i = 0; i < monitors.Count; i++)
-            if (Intersects(monitors[i].Bounds, sel))
-                hits.Add(($"Display {i + 1} ({monitors[i].Bounds.Width}x{monitors[i].Bounds.Height})", monitors[i].Bounds));
         if (hits.Count == 0) return;
         if (hits.Count == 1) { CropTo(hits[0].Bounds); return; }
         ShowCropPicker(hits);
     }
 
-    private void CropToWindow()
+    /// <summary>Displays that overlap the selection but don't already fully contain it.</summary>
+    private List<(string Label, CaptureRegion Bounds)> DisplayCropCandidates()
     {
-        if (!(_model?.HasSelection ?? false)) return;
+        var list = new List<(string, CaptureRegion)>();
+        if (!(_model?.HasSelection ?? false)) return list;
+        var sel = _model.Region;
+        var monitors = ScreenInfo.GetMonitors();
+        for (int i = 0; i < monitors.Count; i++)
+        {
+            var b = monitors[i].Bounds;
+            if (Intersects(b, sel) && !Contains(b, sel))
+                list.Add(($"Display {i + 1} ({b.Width}x{b.Height})", b));
+        }
+        return list;
+    }
+
+    /// <summary>Windows overlapping the selection, actually visible there, not already containing it.</summary>
+    private List<(string Label, CaptureRegion Bounds)> WindowCropCandidates()
+    {
+        var list = new List<(string, CaptureRegion)>();
+        if (!(_model?.HasSelection ?? false)) return list;
         var sel = _model.Region;
         var own = new WindowInteropHelper(this).Handle;
-        var hits = ScreenInfo.GetOpenWindows()
-            .Where(w => w.Handle != own && w.Handle != ToolbarHandle && Intersects(w.Bounds, sel))
-            .ToList();
-        if (hits.Count == 0) return;
-        if (hits.Count == 1) { CropTo(hits[0].Bounds); return; }
-        ShowCropPicker(hits.Select(w => (Trim(w.Title), w.Bounds)));
+        foreach (var w in ScreenInfo.GetOpenWindows())
+        {
+            if (w.Handle == own || w.Handle == ToolbarHandle) continue;
+            if (!Intersects(w.Bounds, sel) || Contains(w.Bounds, sel)) continue;
+            if (!VisibleInSelection(w.Handle, w.Bounds, sel)) continue; // hidden behind others
+            list.Add((Trim(w.Title), w.Bounds));
+        }
+        return list;
+    }
+
+    private static bool Contains(CaptureRegion outer, CaptureRegion inner) =>
+        outer.X <= inner.X && outer.Y <= inner.Y && outer.Right >= inner.Right && outer.Bottom >= inner.Bottom;
+
+    private static bool VisibleInSelection(nint handle, CaptureRegion bounds, CaptureRegion sel)
+    {
+        var i = Intersect(bounds, sel);
+        if (i.IsEmpty) return false;
+        // The window is "visible" here if it's the topmost one at the overlap centre.
+        var hit = ScreenInfo.WindowAt(i.X + i.Width / 2, i.Y + i.Height / 2, Array.Empty<nint>());
+        return hit?.Handle == handle;
     }
 
     private void CropTo(CaptureRegion region)
@@ -957,8 +1003,9 @@ public partial class OverlayWindow : Window
         var cropped = Intersect(_model.Region, region);
         if (cropped.ToEvenDimensions().IsEmpty) return;
         RecordUndo(CurrentState());
-        _model.Set(cropped);
+        _model.Set(cropped); // Set() refreshes the aspect-lock ratio to the new shape
         _dragUndoState = CurrentState();
+        HideCropPreview();
         HideCropPicker();
         UpdateVisuals();
         RaiseTarget();
@@ -970,12 +1017,29 @@ public partial class OverlayWindow : Window
         foreach (var (label, bounds) in items)
         {
             var b = new Button { Content = label, Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(0, 1, 0, 1), HorizontalContentAlignment = HorizontalAlignment.Left, Cursor = Cursors.Hand };
+            b.MouseEnter += (_, _) => ShowCropPreview(bounds);   // preview the result
+            b.MouseLeave += (_, _) => HideCropPreview();
             b.Click += (_, _) => CropTo(bounds);
             CropPickerList.Children.Add(b);
         }
         CropPicker.Visibility = Visibility.Visible;
         PositionCropPicker();
     }
+
+    /// <summary>Show a dashed preview of what the selection becomes if this option is chosen.</summary>
+    private void ShowCropPreview(CaptureRegion region)
+    {
+        if (!(_model?.HasSelection ?? false)) return;
+        var c = Intersect(_model.Region, region);
+        if (c.IsEmpty) { HideCropPreview(); return; }
+        Canvas.SetLeft(CropPreview, PhysXToDip(c.X));
+        Canvas.SetTop(CropPreview, PhysYToDip(c.Y));
+        CropPreview.Width = c.Width / _scale;
+        CropPreview.Height = c.Height / _scale;
+        CropPreview.Visibility = Visibility.Visible;
+    }
+
+    private void HideCropPreview() => CropPreview.Visibility = Visibility.Collapsed;
 
     private void PositionCropPicker()
     {
@@ -987,7 +1051,7 @@ public partial class OverlayWindow : Window
         Canvas.SetTop(CropPicker, Clamp(y, amy, amy + amh - CropPicker.DesiredSize.Height));
     }
 
-    private void HideCropPicker() => CropPicker.Visibility = Visibility.Collapsed;
+    private void HideCropPicker() { CropPicker.Visibility = Visibility.Collapsed; HideCropPreview(); }
 
     private static string Trim(string s) => s.Length <= 40 ? s : s[..39] + "…";
 
@@ -1024,17 +1088,33 @@ public partial class OverlayWindow : Window
         var mon = MonitorForRegion(r);
         double sx = PhysXToDip(r.X), sy = PhysYToDip(r.Y), sw = r.Width / _scale, sh = r.Height / _scale;
         double mx = PhysXToDip(mon.X), my = PhysYToDip(mon.Y), mw = mon.Width / _scale, mh = mon.Height / _scale;
+        double sR = sx + sw, sB = sy + sh, mR = mx + mw, mB = my + mh;
         double cx = sx + sw / 2, cy = sy + sh / 2;
 
-        // Gap projections from the selection edges to the monitor edges.
-        RulerLine(sx, cy, mx, cy); RulerLabel($"{r.X - mon.X}", (sx + mx) / 2, cy);
-        RulerLine(sx + sw, cy, mx + mw, cy); RulerLabel($"{mon.Right - r.Right}", (sx + sw + mx + mw) / 2, cy);
-        RulerLine(cx, sy, cx, my); RulerLabel($"{r.Y - mon.Y}", cx, (sy + my) / 2);
-        RulerLine(cx, sy + sh, cx, my + mh); RulerLabel($"{mon.Bottom - r.Bottom}", cx, (sy + sh + my + mh) / 2);
+        int gapL = r.X - mon.X, gapR = mon.Right - r.Right, gapT = r.Y - mon.Y, gapB = mon.Bottom - r.Bottom;
 
-        // The selection's own dimensions.
-        RulerLabel($"{r.Width} px", cx, sy - 12);
-        RulerLabel($"{r.Height} px", sx - 22, cy);
+        // Projections from the selection's corners to the screen edges + gap lengths.
+        RulerLine(sx, sy, mx, sy); RulerLabel($"{gapL}", (sx + mx) / 2, sy);   // left,  from top-left
+        RulerLine(sR, sB, mR, sB); RulerLabel($"{gapR}", (sR + mR) / 2, sB);   // right, from bottom-right
+        RulerLine(sx, sy, sx, my); RulerLabel($"{gapT}", sx, (sy + my) / 2);   // top,   from top-left
+        RulerLine(sR, sB, sR, mB); RulerLabel($"{gapB}", sR, (sB + mB) / 2);   // bottom,from bottom-right
+
+        // Distance along each screen edge from its corner to where a ruler lands.
+        RulerLabel($"{gapT}", mx + 12, sy); // left edge   ↓ from top
+        RulerLabel($"{gapL}", sx, my + 10); // top edge    → from left
+        RulerLabel($"{gapB}", mR - 12, sB); // right edge  ↑ from bottom
+        RulerLabel($"{gapR}", sR, mB - 10); // bottom edge ← from right
+
+        // Selection dimensions, mirrored on both opposite edges so a toolbar can't
+        // hide them; drawn just inside when the monitor edge is too close.
+        double wTop = gapT < 18 ? sy + 11 : sy - 11;
+        double wBot = gapB < 18 ? sB - 11 : sB + 11;
+        double hLeft = gapL < 26 ? sx + 24 : sx - 24;
+        double hRight = gapR < 26 ? sR - 24 : sR + 24;
+        RulerLabel($"{r.Width} px", cx, wTop);
+        RulerLabel($"{r.Width} px", cx, wBot);
+        RulerLabel($"{r.Height} px", hLeft, cy);
+        RulerLabel($"{r.Height} px", hRight, cy);
     }
 
     private void RulerLine(double x1, double y1, double x2, double y2)

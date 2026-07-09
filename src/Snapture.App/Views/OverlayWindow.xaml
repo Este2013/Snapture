@@ -46,6 +46,10 @@
                    Stroke="#F04747" StrokeThickness="1.5"
                    Visibility="Collapsed" />
 
+        <!-- Preview of a crop-to result while hovering a picker option. -->
+        <Rectangle x:Name="CropPreview" Stroke="#FFD54F" StrokeThickness="1.5"
+                   StrokeDashArray="4 3" Visibility="Collapsed" IsHitTestVisible="False" />
+
         <!-- Size badge -->
         <Border x:Name="InfoBadge" Background="#CC000000" CornerRadius="4"
                 Padding="8,4" Visibility="Collapsed">
@@ -71,7 +75,8 @@
                 <Button x:Name="CropDisplayBtn" Style="{StaticResource RedToolButton}" Content="&#xE7F4;" ToolTip="Crop to display" />
                 <Button x:Name="CropWindowBtn" Style="{StaticResource RedToolButton}" Content="&#xE737;" ToolTip="Crop to window" />
                 <Button x:Name="AspectBtn" Style="{StaticResource RedToolButton}" Content="&#xE785;" ToolTip="Keep aspect ratio" />
-                <Button x:Name="RulerBtn" Style="{StaticResource RedToolButton}" Content="&#xE1E9;" ToolTip="Ruler" />
+                <Button x:Name="RulerBtn" Style="{StaticResource RedToolButton}" ToolTip="Ruler"
+                        FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" FontWeight="SemiBold" Content="px" />
             </StackPanel>
         </Border>
 

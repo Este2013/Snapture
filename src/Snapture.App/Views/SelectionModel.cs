@@ -67,8 +67,13 @@ public sealed class SelectionModel
         Region = new CaptureRegion(left, top, w, h).ClampTo(_vx, _vy, _vRight, _vBottom);
     }
 
-    public void Set(CaptureRegion region) =>
+    public void Set(CaptureRegion region)
+    {
         Region = region.ClampTo(_vx, _vy, _vRight, _vBottom);
+        // An external set (crop, history, undo) redefines the ratio the lock holds.
+        if (AspectLocked && Region.Height > 0)
+            AspectRatio = (double)Region.Width / Region.Height;
+    }
 
     /// <summary>Drop the selection (back to no-selection state).</summary>
     public void Clear() => Region = default;
@@ -118,19 +123,33 @@ public sealed class SelectionModel
 
         if (AspectLocked && AspectRatio > 0)
         {
-            // Derive the height from the (possibly new) width, anchored on the
-            // edge the handle isn't dragging; edge handles resize about the centre.
-            int w = right - left;
-            int h = Math.Max(1, (int)Math.Round(w / AspectRatio));
-            if (changesTop && !changesBottom) top = bottom - h;
-            else if (changesBottom || (changesTop && changesBottom)) bottom = top + h;
+            bool horizEdge = (changesLeft ^ changesRight) && !changesTop && !changesBottom;
+            bool vertEdge = (changesTop ^ changesBottom) && !changesLeft && !changesRight;
+
+            if (vertEdge)
+            {
+                // Top/bottom edge: derive width from the new height, added equally
+                // to both sides (grows about the horizontal centre).
+                int cxx = Region.X + Region.Width / 2;
+                int newW = Math.Max(2, (int)Math.Round((bottom - top) * AspectRatio));
+                left = cxx - newW / 2; right = left + newW;
+            }
+            else if (horizEdge)
+            {
+                // Left/right edge: derive height from the new width, centred vertically.
+                int cyy = Region.Y + Region.Height / 2;
+                int newH = Math.Max(2, (int)Math.Round((right - left) / AspectRatio));
+                top = cyy - newH / 2; bottom = top + newH;
+            }
             else
             {
-                int cy = Region.Y + Region.Height / 2;
-                top = cy - h / 2; bottom = top + h;
+                // Corner: derive height from width, anchored at the non-dragged edge.
+                int newH = Math.Max(2, (int)Math.Round((right - left) / AspectRatio));
+                if (changesTop) top = bottom - newH; else bottom = top + newH;
             }
-            top = Math.Max(top, _vy);
-            bottom = Math.Min(bottom, _vBottom);
+
+            left = Math.Max(left, _vx); right = Math.Min(right, _vRight);
+            top = Math.Max(top, _vy); bottom = Math.Min(bottom, _vBottom);
         }
 
         Region = new CaptureRegion(left, top, right - left, bottom - top);

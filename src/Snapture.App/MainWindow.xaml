@@ -387,42 +387,30 @@
                             <ColumnDefinition Width="170" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Selection toolbar" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="0" Text="Selection toolbar position" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1">
-                            <CheckBox x:Name="SelToolbarDockSwitch" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" />
-                            <TextBlock Text="Dock it to the main toolbar instead of placing it around the selection." FontSize="12" Margin="0,6,0,0"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Border Style="{StaticResource SegmentedContainer}" HorizontalAlignment="Left">
+                                <UniformGrid Rows="1" Columns="5">
+                                    <RadioButton x:Name="SelPosLeft" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Left" MinWidth="58" />
+                                    <RadioButton x:Name="SelPosRight" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Right" MinWidth="58" />
+                                    <RadioButton x:Name="SelPosTop" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Top" MinWidth="58" />
+                                    <RadioButton x:Name="SelPosBottom" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Bottom" MinWidth="58" />
+                                    <RadioButton x:Name="SelPosDock" Style="{StaticResource SegmentRadioButton}" GroupName="SelPos" Content="Dock" MinWidth="58" />
+                                </UniformGrid>
+                            </Border>
+                            <TextBlock Text="Which selection edge it attaches to (Dock = beside the main toolbar). Falls inside when there's no room." FontSize="12" Margin="0,6,0,0"
+                                       TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
                     </Grid>
 
                     <Border Height="1" Margin="0,16,0,12" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
-                    <TextBlock Text="Keyboard shortcuts" FontWeight="SemiBold" Margin="0,0,0,8" />
-                    <Grid x:Name="PickerCommands">
+                    <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="170" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Enter" FontFamily="Consolas" Margin="0,4" />
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Confirm the capture" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Esc" FontFamily="Consolas" Margin="0,4" />
-                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Cancel" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="R" FontFamily="Consolas" Margin="0,4" />
-                        <TextBlock Grid.Row="2" Grid.Column="1" Text="Reload the last capture's position" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Shift+R" FontFamily="Consolas" Margin="0,4" />
-                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Step back through earlier capture positions" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl+Z / Ctrl+Y" FontFamily="Consolas" Margin="0,4" />
-                        <TextBlock Grid.Row="4" Grid.Column="1" Text="Undo / redo selection changes" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Scroll" FontFamily="Consolas" Margin="0,4" VerticalAlignment="Top" />
-                        <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"><Run Text="- before selection: walk the tree of UI elements" /><LineBreak /><Run Text="- after selection: grow / shrink it" /></TextBlock>
-                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Click / drag" FontFamily="Consolas" Margin="0,4" />
-                        <TextBlock Grid.Row="6" Grid.Column="1" Text="Snap to a UI area · drag for a custom rectangle" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Arrows" FontFamily="Consolas" Margin="0,4" />
-                        <TextBlock Grid.Row="7" Grid.Column="1" Text="Nudge the selection by one pixel" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="0" Text="Keyboard shortcuts" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" x:Name="ViewShortcutsButton" Content="View shortcuts…" Padding="12,6" HorizontalAlignment="Left" />
                     </Grid>
                 </StackPanel>
             </Grid>

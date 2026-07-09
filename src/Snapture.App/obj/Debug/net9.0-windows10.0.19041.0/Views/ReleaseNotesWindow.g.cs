@@ -116,7 +116,7 @@ namespace Snapture.App.Views {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/Snapture;V1.3.1.0;component/views/releasenoteswindow.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/Snapture;V1.4.0.0;component/views/releasenoteswindow.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\Views\ReleaseNotesWindow.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

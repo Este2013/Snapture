@@ -74,7 +74,9 @@ public partial class MainWindow : Window
 
         foreach (var r in new[] { PosTopLeft, PosTopCenter, PosTopRight, PosLeftCenter, PosRightCenter, PosBottomLeft, PosBottomCenter, PosBottomRight })
             r.Checked += (_, _) => Persist();
-        SelToolbarDockSwitch.Click += (_, _) => Persist();
+        foreach (var r in new[] { SelPosLeft, SelPosRight, SelPosTop, SelPosBottom, SelPosDock })
+            r.Checked += (_, _) => Persist();
+        ViewShortcutsButton.Click += (_, _) => ShowShortcutsDialog();
 
         // Snapshot
         SnapFormatPng.Checked += (_, _) => Persist();
@@ -168,7 +170,7 @@ public partial class MainWindow : Window
         PortBox.Text = s.ControlServerPort.ToString();
 
         SetPickerPositionRadio(s.PickerBarPosition);
-        SelToolbarDockSwitch.IsChecked = s.SelectionToolbarDockToMain;
+        SetSelPlacementRadio(s.SelectionToolbarPlacement);
 
         SelectDefaultTab();
 
@@ -242,7 +244,7 @@ public partial class MainWindow : Window
             s.ControlServerPort = port;
 
         s.PickerBarPosition = SelectedPickerPosition();
-        s.SelectionToolbarDockToMain = SelToolbarDockSwitch.IsChecked == true;
+        s.SelectionToolbarPlacement = SelectedSelPlacement();
 
         _settings.Save(s);
         UpdateLibraryUi();
@@ -270,6 +272,37 @@ public partial class MainWindow : Window
         PosBottomLeft.IsChecked = p == PickerBarPosition.BottomLeft;
         PosBottomCenter.IsChecked = p == PickerBarPosition.BottomCenter;
         PosBottomRight.IsChecked = p == PickerBarPosition.BottomRight;
+    }
+
+    private SelectionToolbarPlacement SelectedSelPlacement() =>
+        SelPosRight.IsChecked == true ? SelectionToolbarPlacement.Right
+        : SelPosTop.IsChecked == true ? SelectionToolbarPlacement.Top
+        : SelPosBottom.IsChecked == true ? SelectionToolbarPlacement.Bottom
+        : SelPosDock.IsChecked == true ? SelectionToolbarPlacement.DockToMain
+        : SelectionToolbarPlacement.Left;
+
+    private void SetSelPlacementRadio(SelectionToolbarPlacement p)
+    {
+        SelPosLeft.IsChecked = p == SelectionToolbarPlacement.Left;
+        SelPosRight.IsChecked = p == SelectionToolbarPlacement.Right;
+        SelPosTop.IsChecked = p == SelectionToolbarPlacement.Top;
+        SelPosBottom.IsChecked = p == SelectionToolbarPlacement.Bottom;
+        SelPosDock.IsChecked = p == SelectionToolbarPlacement.DockToMain;
+    }
+
+    private void ShowShortcutsDialog()
+    {
+        const string text =
+            "Enter — Confirm the capture\n" +
+            "Esc — Cancel\n\n" +
+            "R — Reload the last capture's position (older each press)\n" +
+            "Shift+R — Step forward again through positions\n\n" +
+            "Ctrl+Z / Ctrl+Y — Undo / redo selection changes\n" +
+            "Arrows — Nudge the selection by 1px (accelerates when held)\n\n" +
+            "Scroll — before a selection: walk the tree of UI elements;\n" +
+            "               after: grow / shrink the selection\n" +
+            "Click / drag — Snap to a UI area, or drag a custom rectangle";
+        new Views.ReleaseNotesWindow("Picker keyboard shortcuts", text) { Owner = this }.ShowDialog();
     }
 
     // ---- global shortcuts editing ----------------------------------------
