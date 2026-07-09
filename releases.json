@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.4.0",
+      "date": "2026-07-09",
+      "notes": "- Selection mini-toolbar: crop to a display or window, keep-aspect-ratio lock, and a ruler with on-screen measurements\n- Arrow keys nudge the selection 1px and accelerate when held; scroll grows/shrinks a committed selection\n- R / Shift+R step through recent capture positions; Ctrl+Z / Ctrl+Y undo/redo\n- Picker settings tab: main + selection toolbar positions, and a keyboard-shortcuts dialog\n- Settings window flashes when re-opened while already visible",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.4.0/Snapture-Setup-1.4.0.exe",
+      "sha256": "806f5b9ff8d58bd68ddec6e2d42e84aa276be54fb7d763dde6ef8bd0477fcad7"
+    },
+    {
       "version": "1.3.0",
       "date": "2026-07-06",
       "notes": "- New capture engine (Windows.Graphics.Capture): fixes custom .ani cursors rendering as a black box and periodic recording corruption\n- No-activate picker: dropdowns/menus in other apps stay open while you select\n- Picker keyboard & scroll: Enter/Esc, R / Shift+R to reload recent capture positions, Ctrl+Z/Y undo-redo, and scroll to grow/shrink a selection\n- New Picker settings tab: choose the toolbar position (corners or edges; sides go vertical)\n- Settings window flashes when re-opened while already visible",
