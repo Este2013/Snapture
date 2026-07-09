@@ -409,7 +409,7 @@
                         <TextBlock Grid.Row="6" Grid.Column="0" Text="Click / drag" FontFamily="Consolas" Margin="0,4" />
                         <TextBlock Grid.Row="6" Grid.Column="1" Text="Snap to a UI area · drag for a custom rectangle" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <TextBlock Grid.Row="7" Grid.Column="0" Text="Arrows" FontFamily="Consolas" Margin="0,4" />
-                        <TextBlock Grid.Row="7" Grid.Column="1" Text="Nudge / resize the selection (when focused)" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Row="7" Grid.Column="1" Text="Nudge the selection by one pixel" Margin="0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     </Grid>
                 </StackPanel>
             </Grid>

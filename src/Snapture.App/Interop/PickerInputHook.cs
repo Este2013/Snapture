@@ -24,6 +24,7 @@ internal sealed class PickerInputHook : IDisposable
     private const int VK_CONTROL = 0x11, VK_LCONTROL = 0xA2, VK_RCONTROL = 0xA3;
     private const int VK_RETURN = 0x0D, VK_ESCAPE = 0x1B;
     private const int VK_R = 0x52, VK_Z = 0x5A, VK_Y = 0x59;
+    private const int VK_LEFT = 0x25, VK_UP = 0x26, VK_RIGHT = 0x27, VK_DOWN = 0x28;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct KBDLLHOOKSTRUCT { public uint vkCode; public uint scanCode; public uint flags; public uint time; public nint dwExtraInfo; }
@@ -43,6 +44,7 @@ internal sealed class PickerInputHook : IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly Action _onEnter, _onEsc, _onRetake, _onHistoryBack, _onUndo, _onRedo;
     private readonly Action<int> _onWheel;
+    private readonly Action<int, int> _onArrow;
 
     // Keep the delegates alive for the hooks' lifetime.
     private readonly HookProc _keyboardProc;
@@ -51,11 +53,13 @@ internal sealed class PickerInputHook : IDisposable
     private bool _shift, _ctrl;
 
     public PickerInputHook(Dispatcher dispatcher, Action onEnter, Action onEsc,
-        Action onRetake, Action onHistoryBack, Action onUndo, Action onRedo, Action<int> onWheel)
+        Action onRetake, Action onHistoryBack, Action onUndo, Action onRedo, Action<int> onWheel,
+        Action<int, int> onArrow)
     {
         _dispatcher = dispatcher;
         _onEnter = onEnter; _onEsc = onEsc; _onRetake = onRetake;
         _onHistoryBack = onHistoryBack; _onUndo = onUndo; _onRedo = onRedo; _onWheel = onWheel;
+        _onArrow = onArrow;
         _keyboardProc = KeyboardProc;
         _mouseProc = MouseProc;
         _keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, _keyboardProc, nint.Zero, 0);
@@ -88,7 +92,8 @@ internal sealed class PickerInputHook : IDisposable
     }
 
     private bool IsMapped(int vk) =>
-        vk is VK_RETURN or VK_ESCAPE or VK_R || (_ctrl && vk is VK_Z or VK_Y);
+        vk is VK_RETURN or VK_ESCAPE or VK_R or VK_LEFT or VK_UP or VK_RIGHT or VK_DOWN
+        || (_ctrl && vk is VK_Z or VK_Y);
 
     private bool TryMap(int vk, out Action action)
     {
@@ -99,6 +104,10 @@ internal sealed class PickerInputHook : IDisposable
             case VK_R: action = _shift ? _onHistoryBack : _onRetake; return true;
             case VK_Z when _ctrl: action = _onUndo; return true;
             case VK_Y when _ctrl: action = _onRedo; return true;
+            case VK_LEFT: action = () => _onArrow(-1, 0); return true;
+            case VK_RIGHT: action = () => _onArrow(1, 0); return true;
+            case VK_UP: action = () => _onArrow(0, -1); return true;
+            case VK_DOWN: action = () => _onArrow(0, 1); return true;
             default: action = null!; return false;
         }
     }

@@ -357,7 +357,7 @@ public partial class OverlayWindow : Window
         _hook = new PickerInputHook(Dispatcher,
             onEnter: TriggerConfirm, onEsc: TriggerCancel,
             onRetake: HistoryOlder, onHistoryBack: HistoryNewer,
-            onUndo: Undo, onRedo: Redo, onWheel: HandleWheel);
+            onUndo: Undo, onRedo: Redo, onWheel: HandleWheel, onArrow: Nudge);
     }
 
     private void OnDisplayPicked(MonitorInfo m)
@@ -746,27 +746,26 @@ public partial class OverlayWindow : Window
                 return;
         }
 
-        if (_mode != CaptureMode.Custom || !_model.HasSelection)
-            return;
-
-        int dx = 0, dy = 0;
         switch (e.Key)
         {
-            case Key.Left: dx = -1; break;
-            case Key.Right: dx = 1; break;
-            case Key.Up: dy = -1; break;
-            case Key.Down: dy = 1; break;
-            default: return;
+            case Key.Left: Nudge(-1, 0); e.Handled = true; break;
+            case Key.Right: Nudge(1, 0); e.Handled = true; break;
+            case Key.Up: Nudge(0, -1); e.Handled = true; break;
+            case Key.Down: Nudge(0, 1); e.Handled = true; break;
         }
+    }
 
+    /// <summary>Nudge (move) or, while a handle is held, resize the selection by a pixel delta.</summary>
+    public void Nudge(int dx, int dy)
+    {
+        if (_mode != CaptureMode.Custom || !(_model?.HasSelection ?? false))
+            return;
         if (_mouseHeldHandle is not (SelectionHandle.None or SelectionHandle.Inside))
             _model.ResizeBy(_mouseHeldHandle, dx, dy);
         else
             _model.MoveBy(dx, dy);
-
         UpdateVisuals();
         RaiseTarget();
-        e.Handled = true;
     }
 
     // ---- hover (display/window) ------------------------------------------
