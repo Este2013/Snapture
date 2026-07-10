@@ -135,10 +135,12 @@ public sealed class FfmpegEncoder : IAsyncDisposable
                 $"-crf {(40 - (int)Math.Round(q * 0.30, MidpointRounding.AwayFromZero)).ToString(ci)} " +
                 $"-movflags +faststart",
 
-            // Animated WebP. libwebp quality is 0..100 directly.
+            // Animated WebP. libwebp quality is 0..100 directly. libwebp doesn't
+            // take frame timing from the input -framerate the way libx264 does, so
+            // set the output rate explicitly or the animation plays sped up.
             OutputFormat.WebP =>
                 $"-c:v libwebp -lossless 0 -compression_level 4 " +
-                $"-quality {q.ToString(ci)} -loop 0",
+                $"-quality {q.ToString(ci)} -loop 0 -r {_frameRate.ToString(ci)}",
 
             // Two-stage palette in one graph for good-looking GIFs.
             OutputFormat.Gif =>
