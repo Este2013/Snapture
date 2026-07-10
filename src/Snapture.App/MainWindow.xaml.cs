@@ -126,6 +126,7 @@ public partial class MainWindow : Window
         FooterSnapshotButton.Click += (_, _) => { Hide(); _startCapture(CaptureKind.Image); };
         FooterRecordButton.Click += (_, _) => { if (_recording) _stopRecording(); else { Hide(); _startCapture(CaptureKind.Video); } };
         GitHubButton.Click += (_, _) => OpenUrl("https://github.com/Este2013/Snapture");
+        LogButton.Click += (_, _) => OpenLog();
         QuitButton.Click += (_, _) => _quit();
     }
 
@@ -643,6 +644,16 @@ public partial class MainWindow : Window
     {
         try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
         catch { /* ignore */ }
+    }
+
+    private static void OpenLog()
+    {
+        try { Process.Start(new ProcessStartInfo(Log.FilePath) { UseShellExecute = true }); }
+        catch
+        {
+            // No default handler for .log → reveal it in Explorer instead.
+            try { Process.Start("explorer.exe", $"/select,\"{Log.FilePath}\""); } catch { }
+        }
     }
 
     protected override void OnClosing(CancelEventArgs e)

@@ -1,32 +1,25 @@
-using System.Diagnostics;
 using System.Runtime;
-using System.Runtime.InteropServices;
 
 namespace Snapture.App;
 
 /// <summary>
-/// Returns memory to the OS once the app is idle. Capture bursts allocate large,
-/// short-lived buffers (frames, full-desktop overlay surfaces, GPU staging
-/// textures); .NET keeps that in the working set long after it's free. A tray
-/// utility shouldn't sit on hundreds of MB in the background, so after a capture
-/// we compact the heap and trim the working set.
+/// Gently reclaims managed memory once the app is idle. Capture bursts put large,
+/// short-lived buffers on the Large Object Heap; compacting it once returns that
+/// space to the OS. Deliberately does NOT trim the process working set
+/// (EmptyWorkingSet / SetProcessWorkingSetSize): paging out the WPF composition
+/// thread's GPU surfaces crashes the render thread (UCEERR_RENDERTHREADFAILURE)
+/// and can reset the display.
 /// </summary>
 internal static class MemoryHygiene
 {
-    [DllImport("psapi.dll")]
-    private static extern bool EmptyWorkingSet(nint hProcess);
-
     public static void Trim()
     {
         try
         {
-            // Large frames land on the LOH; compact it so the freed space is
-            // actually released rather than left as fragmented reserved heap.
             GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
             GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
-            GC.WaitForPendingFinalizers(); // run finalizers freeing native window/GPU surfaces
+            GC.WaitForPendingFinalizers(); // let finalizers free native window/GPU surfaces
             GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
-            EmptyWorkingSet(Process.GetCurrentProcess().Handle);
         }
         catch { /* best effort */ }
     }

@@ -36,11 +36,25 @@ public partial class App : Application
 
         base.OnStartup(e);
 
+        Log.StartSession(typeof(App).Assembly.GetName().Version?.ToString() ?? "?");
+
         DispatcherUnhandledException += (_, args) =>
         {
-            MessageBox.Show("Snapture hit an unexpected error:\n\n" + args.Exception.Message,
+            Log.Error("DispatcherUnhandledException", args.Exception);
+            MessageBox.Show("Snapture hit an unexpected error:\n\n" + args.Exception.Message +
+                "\n\nDetails were written to the log (Settings → open log).",
                 "Snapture", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true; // keep the tray app alive
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex) Log.Error("UnhandledException (fatal)", ex);
+        };
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Log.Error("UnobservedTaskException", args.Exception);
+            args.SetObserved();
         };
 
         _controller = new AppController();

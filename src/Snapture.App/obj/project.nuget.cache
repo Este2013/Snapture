@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "c/8HIA1EP7c=",
+  "dgSpecHash": "v168DAU+b/s=",
   "success": true,
   "projectFilePath": "C:\\PROJECTS\\Snapture\\src\\Snapture.App\\Snapture.App.csproj",
   "expectedPackageFiles": [
@@ -21,11 +21,8 @@
     "C:\\Users\\makrofon\\.nuget\\packages\\vortice.dxgi\\3.6.2\\vortice.dxgi.3.6.2.nupkg.sha512",
     "C:\\Users\\makrofon\\.nuget\\packages\\vortice.mathematics\\1.9.2\\vortice.mathematics.1.9.2.nupkg.sha512",
     "C:\\Users\\makrofon\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.16\\microsoft.netcore.app.ref.9.0.16.nupkg.sha512",
-    "C:\\Users\\makrofon\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\9.0.16\\microsoft.netcore.app.runtime.win-x64.9.0.16.nupkg.sha512",
     "C:\\Users\\makrofon\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.16\\microsoft.windowsdesktop.app.ref.9.0.16.nupkg.sha512",
-    "C:\\Users\\makrofon\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\9.0.16\\microsoft.windowsdesktop.app.runtime.win-x64.9.0.16.nupkg.sha512",
     "C:\\Users\\makrofon\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.16\\microsoft.aspnetcore.app.ref.9.0.16.nupkg.sha512",
-    "C:\\Users\\makrofon\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\9.0.16\\microsoft.aspnetcore.app.runtime.win-x64.9.0.16.nupkg.sha512",
     "C:\\Users\\makrofon\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\9.0.16\\microsoft.netcore.app.host.win-x64.9.0.16.nupkg.sha512",
     "C:\\Users\\makrofon\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
   ],

@@ -67,8 +67,11 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _dispatcher = Application.Current.Dispatcher;
         _settings = new SettingsService();
         _settings.Load();
+        // Recording uses the WGC backend (amortised over the whole clip). Snapshots
+        // are single frames, so use the lightweight GDI path — building a D3D11
+        // device per snapshot churned memory and stressed the GPU.
         _controller = new RecordingController(_settings, global::Snapture.App.Capture.CaptureBackend.Create);
-        _snapshot = new SnapshotService(_settings, global::Snapture.App.Capture.CaptureBackend.Create);
+        _snapshot = new SnapshotService(_settings);
 
         _controller.StateChanged += OnStateChanged;
         _controller.RecordingCompleted += OnRecordingCompleted;
@@ -377,6 +380,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
 
         var kind = overlay.Kind;
         var frozen = _frozen; _frozen = null;
+        Log.Info($"Confirm {kind} {target.Mode} region={target.Region}");
         RecordCaptureHistory(target.Region);
         CloseOverlay(); // dim disappears; the rest of the desktop is usable again
         RememberKind(kind);
@@ -422,6 +426,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             }
             else
             {
+                Log.Info($"Snapshot failed: {result.Error}");
                 Notify("Snapshot failed", result.Error ?? "Unknown error", BalloonIcon.Error);
             }
             ScheduleIdleTrim();
@@ -454,6 +459,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         }
         catch (Exception ex)
         {
+            Log.Error("StartRecording", ex);
             _elapsedTimer.Stop();
             CloseRecordingBar();
             _ = _controller.AbortAsync();
