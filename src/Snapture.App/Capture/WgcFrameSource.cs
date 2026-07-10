@@ -157,7 +157,7 @@ internal sealed class WgcFrameSource : IFrameSource
         // The first frame arrives asynchronously; a single-shot snapshot would
         // otherwise see nothing. Wait briefly (outside the lock) for it.
         if (!_haveFrame && !_disposed)
-            _firstFrame.Wait(1500);
+            _firstFrame.Wait(600);
 
         lock (_gate)
         {

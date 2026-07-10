@@ -101,6 +101,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             IsPluginConnected, PingPlugin,
             suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); },
             () => _ = StopAsync());
+        // Reclaim memory when the settings window is closed to the tray.
+        _mainWindow.IsVisibleChanged += (_, e) => { if (e.NewValue is false) ScheduleIdleTrim(); };
         StartControlServerIfEnabled();
         RegisterHotkeys();
 
@@ -336,6 +338,25 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         }
     }
 
+    private DispatcherTimer? _idleTrimTimer;
+
+    /// <summary>Reclaim memory a moment after the app settles back to idle (debounced).</summary>
+    private void ScheduleIdleTrim()
+    {
+        if (_idleTrimTimer is null)
+        {
+            _idleTrimTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(2) };
+            _idleTrimTimer.Tick += (_, _) =>
+            {
+                _idleTrimTimer!.Stop();
+                if (_controller.State == RecordingState.Idle && !(_mainWindow?.IsVisible ?? false))
+                    MemoryHygiene.Trim();
+            };
+        }
+        _idleTrimTimer.Stop();
+        _idleTrimTimer.Start();
+    }
+
     /// <summary>A mid-pick capture-mode change overrides the saved default for that kind.</summary>
     private void OnOverlayCaptureModeChanged()
     {
@@ -403,6 +424,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             {
                 Notify("Snapshot failed", result.Error ?? "Unknown error", BalloonIcon.Error);
             }
+            ScheduleIdleTrim();
         });
 
         _server?.Broadcast(new ControlEvent
@@ -479,6 +501,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             {
                 CloseOverlay();
                 CloseRecordingBar();
+                ScheduleIdleTrim();
             }
         });
 
