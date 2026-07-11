@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.4.1",
+      "date": "2026-07-11",
+      "notes": "- Fixed a render-thread crash / display freeze from over-aggressive memory trimming\n- Much lower, steady memory use (snapshots use the lightweight capture path; recording still uses the GPU backend)\n- WebP recordings now play at the correct speed\n- Added a log file (Settings has a button to open it) to help diagnose issues",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.4.1/Snapture-Setup-1.4.1.exe",
+      "sha256": "2a43edba5b2c769aff62f96dd9b37899f265653b302f29459cc736b3d3e5d233"
+    },
+    {
       "version": "1.4.0",
       "date": "2026-07-09",
       "notes": "- Selection mini-toolbar: crop to a display or window, keep-aspect-ratio lock, and a ruler with on-screen measurements\n- Arrow keys nudge the selection 1px and accelerate when held; scroll grows/shrinks a committed selection\n- R / Shift+R step through recent capture positions; Ctrl+Z / Ctrl+Y undo/redo\n- Picker settings tab: main + selection toolbar positions, and a keyboard-shortcuts dialog\n- Settings window flashes when re-opened while already visible",
