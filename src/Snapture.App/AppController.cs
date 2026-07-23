@@ -132,10 +132,17 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             }
             else
             {
-                Notify("Snapture is running", "It stays in the tray — click the icon to capture, or F6/F7.", BalloonIcon.Info);
+                try { Notifications.ShowRunning(); }
+                catch
+                {
+                    _nextBalloonOpensSettings = true;
+                    Notify("Snapture is running", "It stays in the tray — click the icon to capture, or F6/F7.", BalloonIcon.Info);
+                }
             }
         });
     }
+
+    private bool _nextBalloonOpensSettings;
 
     /// <summary>Bring up the settings window (used when a second launch pokes this instance).</summary>
     public void ShowSettingsWindow() => ShowSettings();
@@ -211,7 +218,11 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         // Defer the single-click action briefly so a double-click can pre-empt it.
         _tray.TrayLeftMouseUp += (_, _) => { _clickPending = true; _clickTimer.Stop(); _clickTimer.Start(); };
         _tray.TrayMouseDoubleClick += (_, _) => { _clickPending = false; _clickTimer.Stop(); ShowSettings(); };
-        _tray.TrayBalloonTipClicked += (_, _) => OpenLastSaved();
+        _tray.TrayBalloonTipClicked += (_, _) =>
+        {
+            if (_nextBalloonOpensSettings) { _nextBalloonOpensSettings = false; ShowSettings(); }
+            else OpenLastSaved();
+        };
         _tray.ContextMenu = BuildContextMenu();
     }
 

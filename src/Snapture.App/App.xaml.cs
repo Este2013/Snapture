@@ -66,6 +66,8 @@ public partial class App : Application
             var args = ToastArguments.Parse(toastArgs.Argument);
             if (args.Contains("action") && args["action"] == "update")
                 Dispatcher.BeginInvoke(() => _controller?.ShowUpdateDialogFromToast());
+            else if (args.Contains("action") && args["action"] == "settings")
+                Dispatcher.BeginInvoke(() => _controller?.ShowSettingsWindow());
             else if (args.TryGetValue("open", out var file))
                 Dispatcher.BeginInvoke(() =>
                 {

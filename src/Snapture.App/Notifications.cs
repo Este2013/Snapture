@@ -35,4 +35,14 @@ internal static class Notifications
             .AddArgument("action", "update")
             .Show();
     }
+
+    /// <summary>Startup "running in background" toast; clicking opens Settings.</summary>
+    public static void ShowRunning()
+    {
+        new ToastContentBuilder()
+            .AddText("Snapture is running")
+            .AddText("It stays in the tray — click the icon to capture, or F6/F7.")
+            .AddArgument("action", "settings")
+            .Show();
+    }
 }
