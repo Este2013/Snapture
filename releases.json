@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.5.0",
+      "date": "2026-07-23",
+      "notes": "- New: Copy text. Open the picker, select a region, and the recognized text is copied to your clipboard (uses Windows' built-in OCR). Small selections are automatically padded so tiny regions still recognize.\n- New global shortcut: Copy text (default F8), plus toolbar and settings-footer buttons\n- Accessible from the Stream Deck server ('copytext' command)\n- Global Shortcuts settings are now collapsible cards, and the current key is centred in its own pill instead of crowding the label",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.5.0/Snapture-Setup-1.5.0.exe",
+      "sha256": "bfabd61458e634ee8408d35c4e112f6ffb3dc42ca4419b8f94ff40772b4f90e1"
+    },
+    {
       "version": "1.4.3",
       "date": "2026-07-23",
       "notes": "- Clicking the 'Snapture is running' startup notification now opens Settings",
