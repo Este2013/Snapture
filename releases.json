@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.5.1",
+      "date": "2026-07-23",
+      "notes": "- Copy text is now a proper capture kind alongside Snapshot/Video in the picker's toolbar (Enter runs the OCR); F8 and the settings footer button open the picker directly in that mode\n- Fixed the picker toolbar clipping the Copy text button in both orientations\n- Global Shortcuts: one chevron now collapses/expands the whole shortcut list (not each item individually), and it's aligned next to the master toggle",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.5.1/Snapture-Setup-1.5.1.exe",
+      "sha256": "432db9626ed6893afc72c4e38ba619f96da081055bb93c9776697e3a0ba5b81c"
+    },
+    {
       "version": "1.5.0",
       "date": "2026-07-23",
       "notes": "- New: Copy text. Open the picker, select a region, and the recognized text is copied to your clipboard (uses Windows' built-in OCR). Small selections are automatically padded so tiny regions still recognize.\n- New global shortcut: Copy text (default F8), plus toolbar and settings-footer buttons\n- Accessible from the Stream Deck server ('copytext' command)\n- Global Shortcuts settings are now collapsible cards, and the current key is centred in its own pill instead of crowding the label",
