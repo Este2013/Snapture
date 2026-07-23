@@ -1311,7 +1311,7 @@ public partial class OverlayWindow : Window
         ToolbarStack.Orientation = target;
 
         // Segmented groups stack their buttons along the bar's long axis.
-        KindGrid.Rows = vertical ? 2 : 1; KindGrid.Columns = vertical ? 1 : 2;
+        KindGrid.Rows = vertical ? 3 : 1; KindGrid.Columns = vertical ? 1 : 3;
         ModeGrid.Rows = vertical ? 3 : 1; ModeGrid.Columns = vertical ? 1 : 3;
 
         // Vertical uses uniform icon buttons; horizontal keeps the text labels.
