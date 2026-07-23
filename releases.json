@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.4.3",
+      "date": "2026-07-23",
+      "notes": "- Clicking the 'Snapture is running' startup notification now opens Settings",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.4.3/Snapture-Setup-1.4.3.exe",
+      "sha256": "bed5daf4d8bf8df96b5bebe1a4c49a287f39c2bd61f8963705db892d73be92c0"
+    },
+    {
       "version": "1.4.2",
       "date": "2026-07-23",
       "notes": "- New 'Launch on startup' toggle in Settings (General)\n- Release-notes dialog is now paginated: opens on your current version with newer/older navigation",
