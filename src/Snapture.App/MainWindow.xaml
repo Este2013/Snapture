@@ -163,15 +163,12 @@
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Global shortcuts" VerticalAlignment="Top" Margin="0,12" />
                         <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,8">
                             <!-- Header: master toggle + one chevron that collapses the whole list. -->
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <CheckBox Grid.Column="0" x:Name="HotkeysMasterSwitch" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                                <Button Grid.Column="1" x:Name="ShortcutsExpandButton" Style="{StaticResource IconButton}"
-                                        Content="&#xE70D;" FontSize="12" Padding="8,5" ToolTip="Show shortcuts" />
-                            </Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox x:Name="HotkeysMasterSwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
+                                <Button x:Name="ShortcutsExpandButton" Style="{StaticResource IconButton}"
+                                        Content="&#xE70D;" FontSize="12" Padding="8,5" Margin="6,0,0,0"
+                                        VerticalAlignment="Center" ToolTip="Show shortcuts" />
+                            </StackPanel>
 
                             <StackPanel x:Name="ShortcutsList" Margin="0,10,0,0" Visibility="Collapsed">
                                 <Grid Margin="0,0,0,10">
