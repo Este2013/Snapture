@@ -14,16 +14,6 @@
             <Setter Property="Margin" Value="0,8" />
         </Style>
 
-        <!-- Card wrapping one collapsible global-shortcut entry. -->
-        <Style x:Key="ShortcutCard" TargetType="Border">
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="12,9" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorSecondaryBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-        </Style>
-
         <!-- Pill the current shortcut's key name sits centred in, well clear of its label. -->
         <Style x:Key="ShortcutKeyPill" TargetType="Border">
             <Setter Property="CornerRadius" Value="4" />
@@ -172,118 +162,78 @@
 
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Global shortcuts" VerticalAlignment="Top" Margin="0,12" />
                         <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,8">
-                            <CheckBox x:Name="HotkeysMasterSwitch" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" />
+                            <!-- Header: master toggle + one chevron that collapses the whole list. -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox Grid.Column="0" x:Name="HotkeysMasterSwitch" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" x:Name="ShortcutsExpandButton" Style="{StaticResource IconButton}"
+                                        Content="&#xE70D;" FontSize="12" Padding="8,5" ToolTip="Show shortcuts" />
+                            </Grid>
 
-                            <!-- Each shortcut: a header (toggle + title + expand chevron, always
-                                 visible) and a collapsible details row (current key, centred, + Change). -->
-                            <StackPanel Margin="0,10,0,0">
-                                <Border x:Name="PickerHotkeyCard" Style="{StaticResource ShortcutCard}">
-                                    <StackPanel>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <CheckBox Grid.Column="0" x:Name="PickerHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="1" Text="Open picker" VerticalAlignment="Center" Margin="12,0,0,0" />
-                                            <Button Grid.Column="2" x:Name="PickerExpandButton" Style="{StaticResource IconButton}"
-                                                    Content="&#xE70D;" FontSize="12" Padding="8,5" />
-                                        </Grid>
-                                        <Grid x:Name="PickerDetailsRow" Margin="0,10,0,0" Visibility="Collapsed">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Style="{StaticResource ShortcutKeyPill}">
-                                                <TextBlock x:Name="PickerHotkeyText" HorizontalAlignment="Center"
-                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                            </Border>
-                                            <Button Grid.Column="1" x:Name="PickerHotkeyChange" Content="Change" Padding="10,4" Margin="10,0,0,0" />
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border x:Name="SnapHotkeyCard" Style="{StaticResource ShortcutCard}">
-                                    <StackPanel>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <CheckBox Grid.Column="0" x:Name="SnapHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="1" Text="Snapshot" VerticalAlignment="Center" Margin="12,0,0,0" />
-                                            <Button Grid.Column="2" x:Name="SnapExpandButton" Style="{StaticResource IconButton}"
-                                                    Content="&#xE70D;" FontSize="12" Padding="8,5" />
-                                        </Grid>
-                                        <Grid x:Name="SnapDetailsRow" Margin="0,10,0,0" Visibility="Collapsed">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Style="{StaticResource ShortcutKeyPill}">
-                                                <TextBlock x:Name="SnapHotkeyText" HorizontalAlignment="Center"
-                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                            </Border>
-                                            <Button Grid.Column="1" x:Name="SnapHotkeyChange" Content="Change" Padding="10,4" Margin="10,0,0,0" />
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border x:Name="RecHotkeyCard" Style="{StaticResource ShortcutCard}">
-                                    <StackPanel>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <CheckBox Grid.Column="0" x:Name="RecHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="1" Text="Record" VerticalAlignment="Center" Margin="12,0,0,0" />
-                                            <Button Grid.Column="2" x:Name="RecExpandButton" Style="{StaticResource IconButton}"
-                                                    Content="&#xE70D;" FontSize="12" Padding="8,5" />
-                                        </Grid>
-                                        <Grid x:Name="RecDetailsRow" Margin="0,10,0,0" Visibility="Collapsed">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Style="{StaticResource ShortcutKeyPill}">
-                                                <TextBlock x:Name="RecHotkeyText" HorizontalAlignment="Center"
-                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                            </Border>
-                                            <Button Grid.Column="1" x:Name="RecHotkeyChange" Content="Change" Padding="10,4" Margin="10,0,0,0" />
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border x:Name="CopyTextHotkeyCard" Style="{StaticResource ShortcutCard}" Margin="0,0,0,0">
-                                    <StackPanel>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <CheckBox Grid.Column="0" x:Name="CopyTextHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="1" Text="Copy text" VerticalAlignment="Center" Margin="12,0,0,0" />
-                                            <Button Grid.Column="2" x:Name="CopyTextExpandButton" Style="{StaticResource IconButton}"
-                                                    Content="&#xE70D;" FontSize="12" Padding="8,5" />
-                                        </Grid>
-                                        <Grid x:Name="CopyTextDetailsRow" Margin="0,10,0,0" Visibility="Collapsed">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Style="{StaticResource ShortcutKeyPill}">
-                                                <TextBlock x:Name="CopyTextHotkeyText" HorizontalAlignment="Center"
-                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                            </Border>
-                                            <Button Grid.Column="1" x:Name="CopyTextHotkeyChange" Content="Change" Padding="10,4" Margin="10,0,0,0" />
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
+                            <StackPanel x:Name="ShortcutsList" Margin="0,10,0,0" Visibility="Collapsed">
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="96" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0" x:Name="PickerHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="Open picker" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                    <Border Grid.Column="2" Style="{StaticResource ShortcutKeyPill}">
+                                        <TextBlock x:Name="PickerHotkeyText" HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </Border>
+                                    <Button Grid.Column="3" x:Name="PickerHotkeyChange" Content="Change" Padding="10,4" Margin="10,0,0,0" />
+                                </Grid>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="96" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0" x:Name="SnapHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="Snapshot" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                    <Border Grid.Column="2" Style="{StaticResource ShortcutKeyPill}">
+                                        <TextBlock x:Name="SnapHotkeyText" HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </Border>
+                                    <Button Grid.Column="3" x:Name="SnapHotkeyChange" Content="Change" Padding="10,4" Margin="10,0,0,0" />
+                                </Grid>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="96" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0" x:Name="RecHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="Record" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                    <Border Grid.Column="2" Style="{StaticResource ShortcutKeyPill}">
+                                        <TextBlock x:Name="RecHotkeyText" HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </Border>
+                                    <Button Grid.Column="3" x:Name="RecHotkeyChange" Content="Change" Padding="10,4" Margin="10,0,0,0" />
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="96" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0" x:Name="CopyTextHotkeySwitch" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="Copy text" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                    <Border Grid.Column="2" Style="{StaticResource ShortcutKeyPill}">
+                                        <TextBlock x:Name="CopyTextHotkeyText" HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </Border>
+                                    <Button Grid.Column="3" x:Name="CopyTextHotkeyChange" Content="Change" Padding="10,4" Margin="10,0,0,0" />
+                                </Grid>
                             </StackPanel>
                         </StackPanel>
 

@@ -126,10 +126,7 @@ public partial class MainWindow : Window
         CopyTextHotkeyChange.Click += (_, _) => BeginCaptureHotkey("copytext");
         PreviewKeyDown += OnPreviewKeyDown;
 
-        WireExpandable(PickerExpandButton, PickerDetailsRow);
-        WireExpandable(SnapExpandButton, SnapDetailsRow);
-        WireExpandable(RecExpandButton, RecDetailsRow);
-        WireExpandable(CopyTextExpandButton, CopyTextDetailsRow);
+        WireExpandable(ShortcutsExpandButton, ShortcutsList);
 
         FooterCopyTextButton.Click += (_, _) => { Hide(); _startCapture(CaptureKind.Text); };
         FooterSnapshotButton.Click += (_, _) => { Hide(); _startCapture(CaptureKind.Image); };
