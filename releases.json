@@ -2,6 +2,13 @@
   "product": "Snapture",
   "releases": [
     {
+      "version": "1.4.2",
+      "date": "2026-07-23",
+      "notes": "- New 'Launch on startup' toggle in Settings (General)\n- Release-notes dialog is now paginated: opens on your current version with newer/older navigation",
+      "installerUrl": "https://github.com/Este2013/Snapture/releases/download/v1.4.2/Snapture-Setup-1.4.2.exe",
+      "sha256": "b239aed6909dcd906975cd5c938204a31d436080de24c2856cdfe8d56fc26928"
+    },
+    {
       "version": "1.4.1",
       "date": "2026-07-11",
       "notes": "- Fixed a render-thread crash / display freeze from over-aggressive memory trimming\n- Much lower, steady memory use (snapshots use the lightweight capture path; recording still uses the GPU backend)\n- WebP recordings now play at the correct speed\n- Added a log file (Settings has a button to open it) to help diagnose issues",
