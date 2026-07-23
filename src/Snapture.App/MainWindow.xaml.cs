@@ -19,6 +19,7 @@ public partial class MainWindow : Window
 {
     private readonly SettingsService _settings;
     private readonly Action<CaptureKind> _startCapture;
+    private readonly Action _startTextCapture;
     private readonly Action _quit;
     private readonly Func<bool> _isPluginConnected;
     private readonly Action _pingPlugin;
@@ -28,7 +29,7 @@ public partial class MainWindow : Window
     private bool _loading;
     private bool _recording;
     private string? _ffmpegPath;
-    private string? _capturingHotkey; // "picker" | "snap" | "rec" while editing a shortcut
+    private string? _capturingHotkey; // "picker" | "snap" | "rec" | "copytext" while editing a shortcut
 
     private UpdateService _updater = null!;
     private UpdateManifest? _manifestCache;
@@ -37,11 +38,12 @@ public partial class MainWindow : Window
     /// <summary>When false, closing hides to tray instead of exiting.</summary>
     public bool AllowClose { get; set; }
 
-    public MainWindow(SettingsService settings, Action<CaptureKind> startCapture, Action quit,
+    public MainWindow(SettingsService settings, Action<CaptureKind> startCapture, Action startTextCapture, Action quit,
         Func<bool> isPluginConnected, Action pingPlugin, Action<bool> suspendHotkeys, Action stopRecording)
     {
         _settings = settings;
         _startCapture = startCapture;
+        _startTextCapture = startTextCapture;
         _quit = quit;
         _isPluginConnected = isPluginConnected;
         _pingPlugin = pingPlugin;
@@ -119,16 +121,35 @@ public partial class MainWindow : Window
         PickerHotkeySwitch.Click += (_, _) => Persist();
         SnapHotkeySwitch.Click += (_, _) => Persist();
         RecHotkeySwitch.Click += (_, _) => Persist();
+        CopyTextHotkeySwitch.Click += (_, _) => Persist();
         PickerHotkeyChange.Click += (_, _) => BeginCaptureHotkey("picker");
         SnapHotkeyChange.Click += (_, _) => BeginCaptureHotkey("snap");
         RecHotkeyChange.Click += (_, _) => BeginCaptureHotkey("rec");
+        CopyTextHotkeyChange.Click += (_, _) => BeginCaptureHotkey("copytext");
         PreviewKeyDown += OnPreviewKeyDown;
 
+        WireExpandable(PickerExpandButton, PickerDetailsRow);
+        WireExpandable(SnapExpandButton, SnapDetailsRow);
+        WireExpandable(RecExpandButton, RecDetailsRow);
+        WireExpandable(CopyTextExpandButton, CopyTextDetailsRow);
+
+        FooterCopyTextButton.Click += (_, _) => { Hide(); _startTextCapture(); };
         FooterSnapshotButton.Click += (_, _) => { Hide(); _startCapture(CaptureKind.Image); };
         FooterRecordButton.Click += (_, _) => { if (_recording) _stopRecording(); else { Hide(); _startCapture(CaptureKind.Video); } };
         GitHubButton.Click += (_, _) => OpenUrl("https://github.com/Este2013/Snapture");
         LogButton.Click += (_, _) => OpenLog();
         QuitButton.Click += (_, _) => _quit();
+    }
+
+    /// <summary>Toggle a shortcut's details row (current key + Change) and flip its chevron.</summary>
+    private static void WireExpandable(Button expandButton, FrameworkElement detailsRow)
+    {
+        expandButton.Click += (_, _) =>
+        {
+            bool expanded = detailsRow.Visibility == Visibility.Visible;
+            detailsRow.Visibility = expanded ? Visibility.Collapsed : Visibility.Visible;
+            expandButton.Content = expanded ? "" : ""; // chevron down (collapsed) / up (expanded)
+        };
     }
 
     private void LoadFromSettings()
@@ -166,6 +187,7 @@ public partial class MainWindow : Window
         PickerHotkeySwitch.IsChecked = s.PickerHotkey.Enabled;
         SnapHotkeySwitch.IsChecked = s.SnapshotHotkey.Enabled;
         RecHotkeySwitch.IsChecked = s.RecordHotkey.Enabled;
+        CopyTextHotkeySwitch.IsChecked = s.CopyTextHotkey.Enabled;
         LoadHotkeyText();
         UpdateHotkeyEnabled();
 
@@ -241,6 +263,7 @@ public partial class MainWindow : Window
         s.PickerHotkey.Enabled = PickerHotkeySwitch.IsChecked == true;
         s.SnapshotHotkey.Enabled = SnapHotkeySwitch.IsChecked == true;
         s.RecordHotkey.Enabled = RecHotkeySwitch.IsChecked == true;
+        s.CopyTextHotkey.Enabled = CopyTextHotkeySwitch.IsChecked == true;
 
         s.EnableControlServer = ServerCheck.IsChecked == true;
         if (int.TryParse(PortBox.Text, out var port) && port is > 0 and < 65536)
@@ -315,6 +338,7 @@ public partial class MainWindow : Window
         PickerHotkeyText.Text = _settings.Current.PickerHotkey.Display;
         SnapHotkeyText.Text = _settings.Current.SnapshotHotkey.Display;
         RecHotkeyText.Text = _settings.Current.RecordHotkey.Display;
+        CopyTextHotkeyText.Text = _settings.Current.CopyTextHotkey.Display;
     }
 
     private void UpdateHotkeyEnabled()
@@ -323,6 +347,7 @@ public partial class MainWindow : Window
         foreach (var c in new UIElement[]
         {
             PickerHotkeySwitch, PickerHotkeyChange, SnapHotkeySwitch, SnapHotkeyChange, RecHotkeySwitch, RecHotkeyChange,
+            CopyTextHotkeySwitch, CopyTextHotkeyChange,
         })
             c.IsEnabled = on;
     }
@@ -331,6 +356,7 @@ public partial class MainWindow : Window
     {
         "picker" => _settings.Current.PickerHotkey,
         "snap" => _settings.Current.SnapshotHotkey,
+        "copytext" => _settings.Current.CopyTextHotkey,
         _ => _settings.Current.RecordHotkey,
     };
 
@@ -338,6 +364,7 @@ public partial class MainWindow : Window
     {
         "picker" => PickerHotkeyText,
         "snap" => SnapHotkeyText,
+        "copytext" => CopyTextHotkeyText,
         _ => RecHotkeyText,
     };
 

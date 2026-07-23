@@ -12,11 +12,11 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("Snapture")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("1.4.2.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.4.2+6a25dad24cea343f2226c71352538ce37d7c4933")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.5.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.5.0+d228f3f192cf4891198f046d02b21f21bb46959c")]
 [assembly: System.Reflection.AssemblyProductAttribute("Snapture")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Snapture")]
-[assembly: System.Reflection.AssemblyVersionAttribute("1.4.2.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.5.0.0")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows10.0.19041.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows10.0.17763.0")]
 

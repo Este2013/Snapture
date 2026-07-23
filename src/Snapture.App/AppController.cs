@@ -8,6 +8,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Hardcodet.Wpf.TaskbarNotification;
 using Snapture.App.Interop;
+using Snapture.App.Ocr;
 using Snapture.App.Tray;
 using Snapture.App.Views;
 using Snapture.Core.Capture;
@@ -100,7 +101,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     public void Startup()
     {
         BuildTray();
-        _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
+        _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), () => BeginTextCapture(null), Shutdown,
             IsPluginConnected, PingPlugin,
             suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); },
             () => _ = StopAsync());
@@ -174,6 +175,8 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             _hotkeys.Register((uint)s.SnapshotHotkey.VirtualKey, OnSnapshotHotkey, (uint)s.SnapshotHotkey.Modifiers);
         if (s.RecordHotkey.Enabled)
             _hotkeys.Register((uint)s.RecordHotkey.VirtualKey, OnRecordHotkey, (uint)s.RecordHotkey.Modifiers);
+        if (s.CopyTextHotkey.Enabled)
+            _hotkeys.Register((uint)s.CopyTextHotkey.VirtualKey, OnCopyTextHotkey, (uint)s.CopyTextHotkey.Modifiers);
     }
 
     /// <summary>The capture kind to default to (resolving "Last used").</summary>
@@ -203,6 +206,12 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             case RecordingState.Recording: _ = StopAsync(); break;
             case RecordingState.Idle: BeginSelection(CaptureKind.Video, null); break;
         }
+    }
+
+    private void OnCopyTextHotkey()
+    {
+        if (_controller.State == RecordingState.Idle)
+            BeginTextCapture(null);
     }
 
     // ---- tray -------------------------------------------------------------
@@ -264,7 +273,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private void ShowSettings()
     {
         bool alreadyOpen = _mainWindow is { IsVisible: true };
-        _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
+        _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), () => BeginTextCapture(null), Shutdown,
             IsPluginConnected, PingPlugin,
             suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); },
             () => _ = StopAsync());
@@ -297,7 +306,21 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         var mode = modeOverride ?? (kind == CaptureKind.Image
             ? _settings.Current.SnapshotCaptureMode
             : _settings.Current.DefaultCaptureMode);
+        ShowOverlay(kind, mode);
+    }
 
+    /// <summary>Open the picker for a "copy text" pick (kind is nominal — OCR only needs a region).</summary>
+    private void BeginTextCapture(CaptureMode? modeOverride)
+    {
+        if (_controller.State != RecordingState.Idle)
+            return;
+        if (!_controller.BeginSelection())
+            return;
+        ShowOverlay(CaptureKind.Image, modeOverride ?? _settings.Current.SnapshotCaptureMode);
+    }
+
+    private void ShowOverlay(CaptureKind kind, CaptureMode mode)
+    {
         // The picker is shown without taking foreground (see OverlayWindow), which
         // keeps the source app active so its live popups (menus, dropdowns) stay
         // open through the pick and into the confirm-time grab. No frozen backdrop.
@@ -309,6 +332,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _overlay.Confirmed += ConfirmAndStart;
         _overlay.Cancelled += () => _ = CancelAsync();
         _overlay.CaptureModeChanged += OnOverlayCaptureModeChanged;
+        _overlay.TextCopyRequested += OnTextCopyRequested;
         _overlay.Show();
         // Keyboard/wheel shortcuts are handled inside the overlay via a low-level
         // input hook (the window is intentionally non-activating / focus-free).
@@ -369,6 +393,62 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         }
         _idleTrimTimer.Stop();
         _idleTrimTimer.Start();
+    }
+
+    // ---- copy text (OCR) --------------------------------------------------
+
+    private void OnTextCopyRequested()
+    {
+        var overlay = _overlay;
+        var target = overlay?.GetCurrentTarget();
+        if (overlay is null || target is null)
+            return;
+
+        Log.Info($"Copy text {target.Mode} region={target.Region}");
+        RecordCaptureHistory(target.Region);
+        CloseOverlay();
+        _ = RunTextCaptureAsync(target);
+    }
+
+    private async Task RunTextCaptureAsync(CaptureTarget target)
+    {
+        // Not a recording-state action; release the Selecting state the overlay
+        // reserved (mirrors TakeSnapshotAsync) so the app returns to Idle.
+        await _controller.AbortAsync();
+
+        var result = await OcrService.CaptureAndRecognizeAsync(target);
+
+        _ = _dispatcher.BeginInvoke(() =>
+        {
+            if (result.Success && result.Text is not null)
+            {
+                CopyTextToClipboard(result.Text);
+                try { Notifications.ShowTextCopied(result.Text); }
+                catch { Notify("Text copied to clipboard", Truncate(result.Text, 120), BalloonIcon.Info); }
+            }
+            else
+            {
+                Log.Info($"Copy text failed: {result.Error}");
+                Notify("Copy text", result.Error ?? "No text was recognized.", BalloonIcon.Error);
+            }
+            ScheduleIdleTrim();
+        });
+
+        _server?.Broadcast(new ControlEvent
+        {
+            Event = "textCopied",
+            State = StateName(_controller.State),
+            Data = new { ok = result.Success, length = result.Text?.Length ?? 0, error = result.Error },
+        });
+    }
+
+    private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "…";
+
+    /// <summary>Copy recognized text onto the clipboard (best-effort; clipboard can be busy).</summary>
+    private static void CopyTextToClipboard(string text)
+    {
+        try { Clipboard.SetText(text); }
+        catch { /* clipboard busy */ }
     }
 
     /// <summary>A mid-pick capture-mode change overrides the saved default for that kind.</summary>
@@ -669,6 +749,9 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             case "snapshot":
                 return HandleCapture(command, CaptureKind.Image);
 
+            case "copytext":
+                return HandleTextCapture(command);
+
             case "setsnapshotformat":
                 if (Enum.TryParse<ImageFormat>(command.GetString("format"), true, out var sfmt))
                 {
@@ -809,6 +892,46 @@ public sealed class AppController : IControlCommandHandler, IDisposable
             ShowRecordingBar();
             StartRecordingCore(target, fmt);
         }
+        return ControlResponse.Success(command.Id, StateName(_controller.State));
+    }
+
+    /// <summary>
+    /// SD "copytext" command: <c>picker</c> opens the overlay (optionally with a
+    /// starting mode); an explicit <c>display</c>/<c>window</c> runs the OCR
+    /// instantly on that target; otherwise the picker opens in Custom mode.
+    /// </summary>
+    private ControlResponse HandleTextCapture(ControlCommand command)
+    {
+        if (_controller.State != RecordingState.Idle)
+            return ControlResponse.Failure(command.Id, "Already busy.", StateName(_controller.State));
+
+        if (command.GetBool("picker"))
+        {
+            var picked = Enum.TryParse<CaptureMode>(command.GetString("mode"), true, out var pm) ? (CaptureMode?)pm : null;
+            BeginTextCapture(picked);
+            return ControlResponse.Success(command.Id, StateName(_controller.State));
+        }
+
+        if (command.GetString("display") is { } displayId)
+        {
+            var t = ResolveDisplayTarget(displayId);
+            if (t is null)
+                return ControlResponse.Failure(command.Id, $"Display '{displayId}' not found.", StateName(_controller.State));
+            _ = RunTextCaptureAsync(t);
+            return ControlResponse.Success(command.Id, StateName(_controller.State));
+        }
+
+        if (command.GetString("window") is { } || command.GetString("windowTitle") is not null)
+        {
+            var t = ResolveWindowTarget(command.GetString("window"), command.GetString("windowTitle"));
+            if (t is null)
+                return ControlResponse.Failure(command.Id, "The chosen window isn't open right now.", StateName(_controller.State));
+            _ = RunTextCaptureAsync(t);
+            return ControlResponse.Success(command.Id, StateName(_controller.State));
+        }
+
+        // Default: open the picker in Custom mode, the most useful starting point for arbitrary text.
+        BeginTextCapture(CaptureMode.Custom);
         return ControlResponse.Success(command.Id, StateName(_controller.State));
     }
 

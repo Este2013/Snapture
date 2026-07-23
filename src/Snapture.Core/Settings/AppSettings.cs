@@ -82,6 +82,9 @@ public sealed class AppSettings
     /// <summary>Global hotkey that opens the picker in the default snap mode (default F1).</summary>
     public HotkeyBinding PickerHotkey { get; set; } = new() { VirtualKey = 0x70, Display = "F1" };
 
+    /// <summary>Global hotkey that opens the picker for text recognition (default F8).</summary>
+    public HotkeyBinding CopyTextHotkey { get; set; } = new() { VirtualKey = 0x77, Display = "F8" };
+
     /// <summary>Open the file location after a recording is saved.</summary>
     public bool RevealAfterSave { get; set; }
 

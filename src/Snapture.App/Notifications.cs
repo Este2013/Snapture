@@ -36,6 +36,16 @@ internal static class Notifications
             .Show();
     }
 
+    /// <summary>Toast confirming recognized text was copied to the clipboard.</summary>
+    public static void ShowTextCopied(string text)
+    {
+        var preview = text.Length > 200 ? text[..200] + "…" : text;
+        new ToastContentBuilder()
+            .AddText("Text copied to clipboard")
+            .AddText(preview)
+            .Show();
+    }
+
     /// <summary>Startup "running in background" toast; clicking opens Settings.</summary>
     public static void ShowRunning()
     {

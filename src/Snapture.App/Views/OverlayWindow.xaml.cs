@@ -150,6 +150,8 @@ public partial class OverlayWindow : Window
     public event Action<CaptureTarget?>? TargetChanged;
     public event Action? Confirmed;
     public event Action? Cancelled;
+    /// <summary>Raised when the "copy text" toolbar button is clicked with a valid target.</summary>
+    public event Action? TextCopyRequested;
 
     /// <summary>Raised when the user changes the capture mode mid-pick (Display/Window/Custom).</summary>
     public event Action? CaptureModeChanged;
@@ -194,6 +196,7 @@ public partial class OverlayWindow : Window
         ModeCustom.Checked += (_, _) => OnModePicked(CaptureMode.Custom);
 
         RecordButton.Click += (_, _) => { if (GetCurrentTarget() is not null) Confirmed?.Invoke(); };
+        CopyTextButton.Click += (_, _) => { if (GetCurrentTarget() is not null) TextCopyRequested?.Invoke(); };
         CancelButton.Click += (_, _) => Cancelled?.Invoke();
         Toolbar.SizeChanged += (_, _) => PositionToolbar();
 
@@ -1345,6 +1348,7 @@ public partial class OverlayWindow : Window
     {
         var target = GetCurrentTarget();
         RecordButton.IsEnabled = target is not null;
+        CopyTextButton.IsEnabled = target is not null;
         TargetChanged?.Invoke(target);
     }
 
