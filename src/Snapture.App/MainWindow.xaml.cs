@@ -114,6 +114,7 @@ public partial class MainWindow : Window
         PortBox.LostFocus += (_, _) => Persist();
         FfmpegStatus.MouseLeftButtonUp += (_, _) => OpenFfmpegFolder();
 
+        LaunchOnStartupSwitch.Click += (_, _) => { if (!_loading) StartupRegistration.Set(LaunchOnStartupSwitch.IsChecked == true); };
         HotkeysMasterSwitch.Click += (_, _) => { Persist(); UpdateHotkeyEnabled(); };
         PickerHotkeySwitch.Click += (_, _) => Persist();
         SnapHotkeySwitch.Click += (_, _) => Persist();
@@ -160,6 +161,7 @@ public partial class MainWindow : Window
         DefLastUsed.IsChecked = s.DefaultSnapKind == "lastused";
         DefSnapshot.IsChecked = s.DefaultSnapKind == "image";
         DefVideo.IsChecked = s.DefaultSnapKind == "video";
+        LaunchOnStartupSwitch.IsChecked = StartupRegistration.IsEnabled();
         HotkeysMasterSwitch.IsChecked = s.HotkeysEnabled;
         PickerHotkeySwitch.IsChecked = s.PickerHotkey.Enabled;
         SnapHotkeySwitch.IsChecked = s.SnapshotHotkey.Enabled;
@@ -469,26 +471,20 @@ public partial class MainWindow : Window
     private async Task ShowReleaseNotesAsync()
     {
         var manifest = _manifestCache ?? await _updater.FetchManifestAsync();
-        string notes;
         if (manifest is null || manifest.Releases.Count == 0)
         {
-            notes = "Release notes are unavailable right now.";
+            new ReleaseNotesWindow("Release notes", "Release notes are unavailable right now.") { Owner = this }.ShowDialog();
+            return;
         }
-        else
-        {
-            _manifestCache = manifest;
-            var sb = new StringBuilder();
-            foreach (var r in manifest.Releases.OrderByDescending(r => r.SemVer))
-            {
-                sb.Append('v').Append(r.Version);
-                if (!string.IsNullOrWhiteSpace(r.Date)) sb.Append("  —  ").Append(r.Date);
-                sb.AppendLine();
-                if (!string.IsNullOrWhiteSpace(r.Notes)) sb.AppendLine(r.Notes.Trim());
-                sb.AppendLine();
-            }
-            notes = sb.ToString().TrimEnd();
-        }
-        new ReleaseNotesWindow("Release notes", notes) { Owner = this }.ShowDialog();
+
+        _manifestCache = manifest;
+        var releases = manifest.Releases.OrderByDescending(r => r.SemVer).ToList();
+        // Open on the version you're running (or the newest if it isn't listed).
+        var cur = _updater.CurrentVersion;
+        int idx = releases.FindIndex(r =>
+            r.SemVer.Major == cur.Major && r.SemVer.Minor == cur.Minor && r.SemVer.Build == cur.Build);
+        if (idx < 0) idx = 0;
+        new ReleaseNotesWindow(releases, idx) { Owner = this }.ShowDialog();
     }
 
     /// <summary>Toggle the footer record button between "record" and "stop recording".</summary>

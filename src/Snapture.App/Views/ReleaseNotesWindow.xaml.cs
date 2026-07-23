@@ -33,9 +33,45 @@ public partial class ReleaseNotesWindow : Window
         if (updater is null || release is null)
             InstallButton.Visibility = Visibility.Collapsed;
 
+        WireChrome();
+    }
+
+    private readonly IReadOnlyList<ReleaseInfo>? _releases;
+    private int _index;
+
+    /// <summary>Paginated changelog: one release per page, newest first, starting at <paramref name="startIndex"/>.</summary>
+    public ReleaseNotesWindow(IReadOnlyList<ReleaseInfo> releases, int startIndex)
+    {
+        InitializeComponent();
+        _releases = releases;
+        _index = Math.Clamp(startIndex, 0, Math.Max(0, releases.Count - 1));
+        InstallButton.Visibility = Visibility.Collapsed;
+        PagerPanel.Visibility = releases.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+
+        WireChrome();
+        NewerButton.Click += (_, _) => { if (_index > 0) { _index--; RenderPage(); } };
+        OlderButton.Click += (_, _) => { if (_releases is not null && _index < _releases.Count - 1) { _index++; RenderPage(); } };
+        RenderPage();
+    }
+
+    private void WireChrome()
+    {
         HeaderBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
         HeaderClose.Click += (_, _) => Close();
         InstallButton.Click += async (_, _) => await InstallAsync();
+    }
+
+    private void RenderPage()
+    {
+        if (_releases is null || _releases.Count == 0) return;
+        var r = _releases[_index];
+        TitleText.Text = $"Snapture {r.Version}";
+        SubtitleText.Text = r.Date ?? "";
+        SubtitleText.Visibility = string.IsNullOrWhiteSpace(r.Date) ? Visibility.Collapsed : Visibility.Visible;
+        NotesText.Text = string.IsNullOrWhiteSpace(r.Notes) ? "No release notes were provided." : r.Notes.Trim();
+        PageText.Text = $"{_index + 1} of {_releases.Count}";
+        NewerButton.IsEnabled = _index > 0;
+        OlderButton.IsEnabled = _index < _releases.Count - 1;
     }
 
     private async Task InstallAsync()

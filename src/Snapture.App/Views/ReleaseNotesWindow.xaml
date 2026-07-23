@@ -54,6 +54,13 @@
                 <TextBlock x:Name="StatusText" VerticalAlignment="Center" Margin="10,0,0,0"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
             </StackPanel>
+            <!-- Changelog pager (newer/older versions). -->
+            <StackPanel x:Name="PagerPanel" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+                <Button x:Name="NewerButton" Style="{StaticResource IconButton}" Content="&#xE76B;" ToolTip="Newer version" />
+                <TextBlock x:Name="PageText" VerticalAlignment="Center" Margin="6,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
+                <Button x:Name="OlderButton" Style="{StaticResource IconButton}" Content="&#xE76C;" ToolTip="Older version" />
+            </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button x:Name="InstallButton" Style="{StaticResource AccentButton}"
                         Content="Install update" Padding="16,8" />
