@@ -16,11 +16,12 @@ public enum ImageFormat
     WebP,
 }
 
-/// <summary>Whether a capture produces a video recording or a still snapshot.</summary>
+/// <summary>What a capture produces: a video recording, a still snapshot, or recognized text.</summary>
 public enum CaptureKind
 {
     Video,
     Image,
+    Text,
 }
 
 /// <summary>How the capture area is chosen.</summary>

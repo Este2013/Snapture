@@ -101,7 +101,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     public void Startup()
     {
         BuildTray();
-        _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), () => BeginTextCapture(null), Shutdown,
+        _mainWindow = new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
             IsPluginConnected, PingPlugin,
             suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); },
             () => _ = StopAsync());
@@ -211,7 +211,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private void OnCopyTextHotkey()
     {
         if (_controller.State == RecordingState.Idle)
-            BeginTextCapture(null);
+            BeginSelection(CaptureKind.Text, null);
     }
 
     // ---- tray -------------------------------------------------------------
@@ -273,7 +273,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     private void ShowSettings()
     {
         bool alreadyOpen = _mainWindow is { IsVisible: true };
-        _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), () => BeginTextCapture(null), Shutdown,
+        _mainWindow ??= new MainWindow(_settings, kind => BeginSelection(kind, null), Shutdown,
             IsPluginConnected, PingPlugin,
             suspend => { if (suspend) _hotkeys?.Clear(); else ApplyHotkeys(); },
             () => _ = StopAsync());
@@ -303,20 +303,12 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         if (!_controller.BeginSelection())
             return;
 
-        var mode = modeOverride ?? (kind == CaptureKind.Image
-            ? _settings.Current.SnapshotCaptureMode
-            : _settings.Current.DefaultCaptureMode);
+        // Text and snapshot are still-image picks → default to the snapshot mode;
+        // video defaults to the video mode.
+        var mode = modeOverride ?? (kind == CaptureKind.Video
+            ? _settings.Current.DefaultCaptureMode
+            : _settings.Current.SnapshotCaptureMode);
         ShowOverlay(kind, mode);
-    }
-
-    /// <summary>Open the picker for a "copy text" pick (kind is nominal — OCR only needs a region).</summary>
-    private void BeginTextCapture(CaptureMode? modeOverride)
-    {
-        if (_controller.State != RecordingState.Idle)
-            return;
-        if (!_controller.BeginSelection())
-            return;
-        ShowOverlay(CaptureKind.Image, modeOverride ?? _settings.Current.SnapshotCaptureMode);
     }
 
     private void ShowOverlay(CaptureKind kind, CaptureMode mode)
@@ -332,7 +324,6 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         _overlay.Confirmed += ConfirmAndStart;
         _overlay.Cancelled += () => _ = CancelAsync();
         _overlay.CaptureModeChanged += OnOverlayCaptureModeChanged;
-        _overlay.TextCopyRequested += OnTextCopyRequested;
         _overlay.Show();
         // Keyboard/wheel shortcuts are handled inside the overlay via a low-level
         // input hook (the window is intentionally non-activating / focus-free).
@@ -396,19 +387,6 @@ public sealed class AppController : IControlCommandHandler, IDisposable
     }
 
     // ---- copy text (OCR) --------------------------------------------------
-
-    private void OnTextCopyRequested()
-    {
-        var overlay = _overlay;
-        var target = overlay?.GetCurrentTarget();
-        if (overlay is null || target is null)
-            return;
-
-        Log.Info($"Copy text {target.Mode} region={target.Region}");
-        RecordCaptureHistory(target.Region);
-        CloseOverlay();
-        _ = RunTextCaptureAsync(target);
-    }
 
     private async Task RunTextCaptureAsync(CaptureTarget target)
     {
@@ -474,8 +452,14 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         Log.Info($"Confirm {kind} {target.Mode} region={target.Region}");
         RecordCaptureHistory(target.Region);
         CloseOverlay(); // dim disappears; the rest of the desktop is usable again
-        RememberKind(kind);
 
+        if (kind == CaptureKind.Text)
+        {
+            _ = RunTextCaptureAsync(target); // OCR isn't a snap/video "last used" kind
+            return;
+        }
+
+        RememberKind(kind);
         if (kind == CaptureKind.Image)
         {
             _lastImageTarget = target;
@@ -908,7 +892,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         if (command.GetBool("picker"))
         {
             var picked = Enum.TryParse<CaptureMode>(command.GetString("mode"), true, out var pm) ? (CaptureMode?)pm : null;
-            BeginTextCapture(picked);
+            BeginSelection(CaptureKind.Text, picked);
             return ControlResponse.Success(command.Id, StateName(_controller.State));
         }
 
@@ -931,7 +915,7 @@ public sealed class AppController : IControlCommandHandler, IDisposable
         }
 
         // Default: open the picker in Custom mode, the most useful starting point for arbitrary text.
-        BeginTextCapture(CaptureMode.Custom);
+        BeginSelection(CaptureKind.Text, CaptureMode.Custom);
         return ControlResponse.Success(command.Id, StateName(_controller.State));
     }
 

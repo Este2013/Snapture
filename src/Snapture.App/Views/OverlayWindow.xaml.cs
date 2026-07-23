@@ -150,8 +150,6 @@ public partial class OverlayWindow : Window
     public event Action<CaptureTarget?>? TargetChanged;
     public event Action? Confirmed;
     public event Action? Cancelled;
-    /// <summary>Raised when the "copy text" toolbar button is clicked with a valid target.</summary>
-    public event Action? TextCopyRequested;
 
     /// <summary>Raised when the user changes the capture mode mid-pick (Display/Window/Custom).</summary>
     public event Action? CaptureModeChanged;
@@ -184,6 +182,7 @@ public partial class OverlayWindow : Window
         _suppressModeEvents = true;
         KindSnapshot.IsChecked = kind == CaptureKind.Image;
         KindVideo.IsChecked = kind == CaptureKind.Video;
+        KindText.IsChecked = kind == CaptureKind.Text;
         ModeDisplay.IsChecked = mode == CaptureMode.Display;
         ModeWindow.IsChecked = mode == CaptureMode.Window;
         ModeCustom.IsChecked = mode == CaptureMode.Custom;
@@ -191,12 +190,12 @@ public partial class OverlayWindow : Window
 
         KindSnapshot.Checked += (_, _) => OnKindPicked(CaptureKind.Image);
         KindVideo.Checked += (_, _) => OnKindPicked(CaptureKind.Video);
+        KindText.Checked += (_, _) => OnKindPicked(CaptureKind.Text);
         ModeDisplay.Checked += (_, _) => OnModePicked(CaptureMode.Display);
         ModeWindow.Checked += (_, _) => OnModePicked(CaptureMode.Window);
         ModeCustom.Checked += (_, _) => OnModePicked(CaptureMode.Custom);
 
         RecordButton.Click += (_, _) => { if (GetCurrentTarget() is not null) Confirmed?.Invoke(); };
-        CopyTextButton.Click += (_, _) => { if (GetCurrentTarget() is not null) TextCopyRequested?.Invoke(); };
         CancelButton.Click += (_, _) => Cancelled?.Invoke();
         Toolbar.SizeChanged += (_, _) => PositionToolbar();
 
@@ -219,15 +218,25 @@ public partial class OverlayWindow : Window
 
     private void UpdateActionButton()
     {
-        if (_kind == CaptureKind.Image)
+        switch (_kind)
         {
-            RecordButton.Content = CaptureIcons.ScanCamera();
-            RecordButton.ToolTip = "Take snapshot (Enter)";
-        }
-        else
-        {
-            RecordButton.Content = CaptureIcons.Record();
-            RecordButton.ToolTip = "Record (Enter)";
+            case CaptureKind.Image:
+                RecordButton.Content = CaptureIcons.ScanCamera();
+                RecordButton.ToolTip = "Take snapshot (Enter)";
+                break;
+            case CaptureKind.Text:
+                RecordButton.Content = new TextBlock
+                {
+                    Text = ((char)0xE8C8).ToString(),
+                    FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+                    FontSize = 16,
+                };
+                RecordButton.ToolTip = "Copy text (Enter)";
+                break;
+            default:
+                RecordButton.Content = CaptureIcons.Record();
+                RecordButton.ToolTip = "Record (Enter)";
+                break;
         }
     }
 
@@ -1348,7 +1357,6 @@ public partial class OverlayWindow : Window
     {
         var target = GetCurrentTarget();
         RecordButton.IsEnabled = target is not null;
-        CopyTextButton.IsEnabled = target is not null;
         TargetChanged?.Invoke(target);
     }
 

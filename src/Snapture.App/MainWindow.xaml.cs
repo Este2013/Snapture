@@ -19,7 +19,6 @@ public partial class MainWindow : Window
 {
     private readonly SettingsService _settings;
     private readonly Action<CaptureKind> _startCapture;
-    private readonly Action _startTextCapture;
     private readonly Action _quit;
     private readonly Func<bool> _isPluginConnected;
     private readonly Action _pingPlugin;
@@ -38,12 +37,11 @@ public partial class MainWindow : Window
     /// <summary>When false, closing hides to tray instead of exiting.</summary>
     public bool AllowClose { get; set; }
 
-    public MainWindow(SettingsService settings, Action<CaptureKind> startCapture, Action startTextCapture, Action quit,
+    public MainWindow(SettingsService settings, Action<CaptureKind> startCapture, Action quit,
         Func<bool> isPluginConnected, Action pingPlugin, Action<bool> suspendHotkeys, Action stopRecording)
     {
         _settings = settings;
         _startCapture = startCapture;
-        _startTextCapture = startTextCapture;
         _quit = quit;
         _isPluginConnected = isPluginConnected;
         _pingPlugin = pingPlugin;
@@ -133,7 +131,7 @@ public partial class MainWindow : Window
         WireExpandable(RecExpandButton, RecDetailsRow);
         WireExpandable(CopyTextExpandButton, CopyTextDetailsRow);
 
-        FooterCopyTextButton.Click += (_, _) => { Hide(); _startTextCapture(); };
+        FooterCopyTextButton.Click += (_, _) => { Hide(); _startCapture(CaptureKind.Text); };
         FooterSnapshotButton.Click += (_, _) => { Hide(); _startCapture(CaptureKind.Image); };
         FooterRecordButton.Click += (_, _) => { if (_recording) _stopRecording(); else { Hide(); _startCapture(CaptureKind.Video); } };
         GitHubButton.Click += (_, _) => OpenUrl("https://github.com/Este2013/Snapture");
